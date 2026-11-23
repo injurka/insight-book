@@ -1,6 +1,6 @@
 import type { users } from '../db/schema'
 import type { IUserRepository } from '../repositories/interfaces'
-import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
 import { AuthService } from './auth.service'
 
 describe('AuthService - OAuth Linking & Unlinking', () => {
@@ -129,10 +129,18 @@ describe('AuthService - OAuth Linking & Unlinking', () => {
       avatarUrl: null,
     }))
 
-    const result = await authService.unlinkProvider(1, 'yandex')
+    const user = (await mockUserRepo.findById(1))!
+    const passwordHash = await Bun.password.hash('current-password', { algorithm: 'bcrypt', cost: 4 })
+    mockUserRepo.findById = mock(async () => ({ ...user, passwordHash }))
+    mockUserRepo.updateYandexLink = mock(async () => ({ ...user, yandexId: null, passwordHash }))
+
+    await expect(authService.unlinkProvider(1, 'yandex', 'wrong-password')).rejects.toThrow('Confirm a working InsightBook password')
+    expect(mockUserRepo.updateYandexLink).not.toHaveBeenCalled()
+
+    const result = await authService.unlinkProvider(1, 'yandex', 'current-password')
     expect(result.success).toBe(true)
     expect(result.user.isYandexLinked).toBe(false)
-    expect(mockUserRepo.updateUser).toHaveBeenCalledWith(1, { yandexId: null })
+    expect(mockUserRepo.updateYandexLink).toHaveBeenCalledWith(1, 'yandex_12345', { yandexId: null })
   })
 
   it('throws error when unlinking if provider is not linked', async () => {
@@ -163,6 +171,40 @@ describe('AuthService - OAuth Linking & Unlinking', () => {
       avatarUrl: null,
     }))
 
-    await expect(authService.unlinkProvider(1, 'yandex')).rejects.toThrow('Нельзя отвязать единственный способ входа в аккаунт')
+    await expect(authService.unlinkProvider(1, 'yandex')).rejects.toThrow('Confirm a working InsightBook password')
+  })
+  it('requires explicit linking for a matching email and preserves existing Yandex links', async () => {
+    const user = (await mockUserRepo.findById(1))!
+    mockUserRepo.findByEmail = mock(async () => user)
+    mockUserRepo.updateYandexLink = mock(async () => user)
+    const fetch = spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json({ access_token: 'test' }))
+      .mockResolvedValueOnce(Response.json({ id: 'new-id', default_email: user.email }))
+      .mockResolvedValueOnce(Response.json({ access_token: 'test' }))
+      .mockResolvedValueOnce(Response.json({ id: 'new-id', default_email: user.email }))
+
+    try {
+      await expect(authService.exchangeYandexCode('code')).rejects.toMatchObject({ code: 'EMAIL_ALREADY_EXISTS' })
+      mockUserRepo.findById = mock(async () => ({ ...user, yandexId: 'previous-id' }))
+      await expect(authService.linkYandex(1, 'code')).rejects.toMatchObject({ code: 'OAUTH_ALREADY_LINKED' })
+      expect(mockUserRepo.updateYandexLink).not.toHaveBeenCalled()
+    }
+    finally {
+      fetch.mockRestore()
+    }
+  })
+
+  it('rejects a malformed Yandex identity before accessing the user repository', async () => {
+    const fetch = spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json({ access_token: 'test' }))
+      .mockResolvedValueOnce(Response.json({ default_email: 'test@example.com' }))
+
+    try {
+      await expect(authService.exchangeYandexCode('code')).rejects.toMatchObject({ code: 'OAUTH_USER_INFO_FAILED' })
+      expect(mockUserRepo.findByYandexId).not.toHaveBeenCalled()
+    }
+    finally {
+      fetch.mockRestore()
+    }
   })
 })

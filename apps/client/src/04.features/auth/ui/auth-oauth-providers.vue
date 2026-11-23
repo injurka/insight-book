@@ -15,19 +15,19 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <a
-    href="#"
-    class="yandex-btn yandex-btn-link"
-    :class="{ 'is-disabled': props.isLoading }"
-    @click.prevent="emit('loginYandex')"
+  <button
+    type="button"
+    class="yandex-btn"
+    :disabled="props.isLoading"
+    @click="emit('loginYandex')"
   >
     <span class="yandex-btn-inner">
       <span class="yandex-icon-wrap">
-        <span style="font-family: Arial, sans-serif; font-weight: bold; font-size: 1.3rem;">Я</span>
+        <span class="yandex-letter">Я</span>
       </span>
       <span class="yandex-btn-label">{{ t('signIn.yandexLogin') }}</span>
     </span>
-  </a>
+  </button>
 </template>
 
 <style scoped>
@@ -48,19 +48,19 @@ const { t } = useI18n()
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .yandex-btn:hover:not(.is-disabled) {
+  .yandex-btn:hover:not(:disabled) {
     box-shadow: 0 8px 28px rgba(252, 63, 29, 0.45);
     background: linear-gradient(135deg, #ff4d27 0%, #e0381a 100%);
   }
 }
 
-.yandex-btn:active:not(.is-disabled) {
+.yandex-btn:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.yandex-btn.is-disabled {
+.yandex-btn:disabled {
   opacity: 0.7;
-  pointer-events: none;
+  cursor: default;
 }
 
 .yandex-btn-inner {
@@ -81,6 +81,12 @@ const { t } = useI18n()
   font-size: 1.2rem;
   color: white;
   flex-shrink: 0;
+}
+
+.yandex-letter {
+  font:
+    bold 1.3rem Arial,
+    sans-serif;
 }
 
 .yandex-btn-label {

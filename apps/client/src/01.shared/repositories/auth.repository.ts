@@ -9,16 +9,17 @@ import { AuthLoginResponseSchema, AuthMeResponseSchema, AuthOAuthStatusSchema } 
 
 export interface IAuthRepository {
   logout: () => Promise<void>
-  acceptOAuthSession: (result: AuthOAuthStatusDomain) => void
+  acceptOAuthSession: (result: AuthOAuthStatusDomain, snapshot?: string) => void
   acceptLegacyToken: (token: string) => void
   me: () => Promise<{ user: UserData | null, mode: string }>
+  startYandexLink: (data: { sessionId?: string, locale: string }, options?: ApiRequestOptions) => Promise<{ redirectUrl: string }>
   oauthStatus: (sessionId: string, options?: ApiRequestOptions) => Promise<AuthOAuthStatusDomain>
   login: (credentials: AuthLoginDto) => Promise<{ token: string, user: UserData }>
   updateAvatar: (file: File) => Promise<{ avatarUrl: string }>
   updateUsername: (username: string) => Promise<{ username: string }>
   sendCode: (data: AuthSendCodeDto) => Promise<{ success: boolean, message: string }>
   register: (data: AuthRegisterDto) => Promise<{ token: string, user: UserData }>
-  unlinkProvider: (provider: string) => Promise<{ success: boolean, user: UserData }>
+  unlinkProvider: (provider: string, password?: string) => Promise<{ success: boolean, user: UserData }>
 }
 
 function acceptLogin(value: { token?: string, accessToken?: string, refreshToken?: string, expiresIn?: number }) {
@@ -35,7 +36,12 @@ export class DefaultAuthRepository implements IAuthRepository {
     await api.auth.logout()
   }
 
-  acceptOAuthSession(result: AuthOAuthStatusDomain) {
+  acceptOAuthSession(result: AuthOAuthStatusDomain, snapshot = authSessionSnapshot()) {
+    if (authSessionSnapshot() !== snapshot) {
+      api.auth.discardSession(result)
+      throw new DOMException('Login cancelled', 'AbortError')
+    }
+
     acceptLogin(applyAcl(AuthOAuthStatusSchema, result, 'auth.acceptOAuthSession()'))
   }
 
@@ -47,6 +53,10 @@ export class DefaultAuthRepository implements IAuthRepository {
     const raw = await api.auth.me()
 
     return applyAcl(AuthMeResponseSchema, raw, 'auth.me()')
+  }
+
+  async startYandexLink(data: { sessionId?: string, locale: string }, options?: ApiRequestOptions) {
+    return api.auth.startYandexLink(data, options)
   }
 
   async oauthStatus(sessionId: string, options?: ApiRequestOptions) {
@@ -95,8 +105,8 @@ export class DefaultAuthRepository implements IAuthRepository {
     return api.auth.updateUsername(username)
   }
 
-  async unlinkProvider(provider: string) {
-    return api.auth.unlinkProvider(provider)
+  async unlinkProvider(provider: string, password?: string) {
+    return api.auth.unlinkProvider(provider, password)
   }
 }
 

@@ -1,6 +1,6 @@
 import type { SQL } from 'drizzle-orm'
 import type { IUserRepository } from './interfaces'
-import { and, desc, eq, like, or, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, like, or, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
@@ -35,6 +35,16 @@ export class UserRepository implements IUserRepository {
 
   async updateUser(id: number, data: Partial<typeof schema.users.$inferInsert>) {
     const [user] = await db.update(schema.users).set(data).where(eq(schema.users.id, id)).returning()
+
+    return user
+  }
+
+  async updateYandexLink(userId: number, previousId: string | null, data: {
+    yandexId: string | null
+    avatarUrl?: string
+  }) {
+    const currentLink = previousId === null ? isNull(schema.users.yandexId) : eq(schema.users.yandexId, previousId)
+    const [user] = await db.update(schema.users).set(data).where(and(eq(schema.users.id, userId), currentLink)).returning()
 
     return user
   }

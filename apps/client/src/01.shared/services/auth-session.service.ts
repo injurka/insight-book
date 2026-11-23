@@ -246,7 +246,7 @@ export class AuthSessionManager {
   private isCredentialRoute(url: URL): boolean {
     const path = url.pathname.slice(new URL(this.baseUrl).pathname.replace(/\/$/, '').length)
 
-    return /^\/api\/auth\/(?:session\/|login|register|send-code|status|yandex)/.test(path)
+    return /^\/api\/auth\/(?:session\/|(?:login|register|send-code|status|yandex)\/?$)/.test(path)
   }
 
   private async authenticatedRequest(input: RequestInfo | URL, init: RequestInit | undefined, getToken: () => string | null): Promise<Response> {

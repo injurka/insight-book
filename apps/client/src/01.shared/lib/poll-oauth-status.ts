@@ -1,7 +1,13 @@
 import type { AuthOAuthStatusDomain } from '~/01.shared/types/schemas/auth.schema'
+import { OAUTH_ATTEMPT_TTL_MS } from './oauth-flow'
 
 const DEFAULT_INTERVAL_MS = 2_000
-const DEFAULT_TIMEOUT_MS = 2 * 60 * 1_000
+
+export class OAuthTimeoutError extends Error {
+  constructor() {
+    super('OAuth polling timed out')
+  }
+}
 
 interface PollOAuthStatusOptions {
   signal: AbortSignal
@@ -11,6 +17,14 @@ interface PollOAuthStatusOptions {
 
 export function hasOAuthSession(result: AuthOAuthStatusDomain): boolean {
   return result.status === 'success' && !!(result.token || result.accessToken)
+}
+
+export function isOAuthLinkSuccess(result: AuthOAuthStatusDomain): boolean {
+  return result.status === 'success' && result.linked === true
+}
+
+export function isOAuthAborted(signal: AbortSignal, error: unknown): boolean {
+  return signal.aborted || (error instanceof Error && error.name === 'AbortError')
 }
 
 function abortError(): Error {
@@ -53,7 +67,7 @@ export async function pollOAuthStatus(fetchStatus: (signal: AbortSignal) => Prom
     throw abortError()
 
   const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  const timeoutMs = options.timeoutMs ?? OAUTH_ATTEMPT_TTL_MS
 
   if (!Number.isFinite(intervalMs) || intervalMs <= 0 || !Number.isFinite(timeoutMs) || timeoutMs <= 0)
     throw new RangeError('OAuth polling intervals and timeout must be positive finite numbers')
@@ -61,7 +75,7 @@ export async function pollOAuthStatus(fetchStatus: (signal: AbortSignal) => Prom
   const controller = new AbortController()
   const onAbort = () => controller.abort(abortError())
   options.signal.addEventListener('abort', onAbort, { once: true })
-  const timer = setTimeout(() => controller.abort(new Error('OAuth polling timed out')), timeoutMs)
+  const timer = setTimeout(() => controller.abort(new OAuthTimeoutError()), timeoutMs)
   let rejectOnAbort: () => void = () => {}
   const cancelled = new Promise<never>((_, reject) => {
     rejectOnAbort = () => reject(controller.signal.reason)

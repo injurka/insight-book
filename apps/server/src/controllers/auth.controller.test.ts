@@ -126,3 +126,124 @@ describe('Renewable desktop authentication routes', () => {
     }
   })
 })
+
+describe('Yandex OAuth completion', () => {
+  const app = new Elysia().use(authRouter)
+  const api = 'http://localhost/api/auth'
+  const get = (path: string) => app.handle(new Request(`${api}${path}`))
+  const status = async (sessionId: string) => (await get(`/status?session_id=${sessionId}`)).json()
+  const stateFrom = (url: string) => new URL(url).searchParams.get('state')!
+
+  it('renders the native completion page and delivers cancellation and failure once', async () => {
+    const exchange = spyOn(authService, 'exchangeYandexCode').mockRejectedValue(new Error('provider detail'))
+
+    try {
+      for (const [callback, expected, title] of [
+        ['error=access_denied', 'cancelled', 'Sign-in cancelled'],
+        ['code=test', 'failed', 'Could not continue'],
+        ['', 'failed', 'Could not continue'],
+      ]) {
+        const sessionId = crypto.randomUUID()
+        const start = await get(`/yandex?session=desktop&session_id=${sessionId}&lang=en`)
+        const state = stateFrom(start.headers.get('Location')!)
+        expect(await status(sessionId)).toEqual({ status: 'pending' })
+
+        const response = await get(`/yandex/callback?state=${state}&${callback}`)
+        expect(response.headers.get('Cache-Control')).toContain('no-store')
+        expect(response.headers.get('Referrer-Policy')).toBe('no-referrer')
+        const html = await response.text()
+        expect(html).toContain(title)
+        expect(html).toContain('insightbook://auth/yandex/return')
+        expect(html).not.toContain('provider detail')
+
+        expect(await status(sessionId)).toEqual({ status: 'error', error: expected })
+        expect(await status(sessionId)).toEqual({ status: 'pending' })
+        expect((await get(`/yandex/callback?code=test&state=${state}`)).status).toBe(400)
+      }
+
+      expect(exchange).toHaveBeenCalledTimes(1)
+    }
+    finally {
+      exchange.mockRestore()
+    }
+  })
+
+  it('rejects unknown, missing and duplicate state before exchanging the provider code', async () => {
+    const exchange = spyOn(authService, 'exchangeYandexCode')
+
+    try {
+      const start = await get('/yandex?session=web')
+      const state = stateFrom(start.headers.get('Location')!)
+
+      for (const query of ['', `&state=${crypto.randomUUID()}`, `&state=${state}&state=${state}`]) {
+        const response = await get(`/yandex/callback?code=test${query}`)
+        expect(response.status).toBe(400)
+        expect(response.headers.get('Content-Type')).toContain('text/html')
+      }
+
+      expect(exchange).not.toHaveBeenCalled()
+    }
+    finally {
+      exchange.mockRestore()
+    }
+  })
+
+  it('rejects expired attempts and gives a session only to the first poller', async () => {
+    const exchange = spyOn(authService, 'exchangeYandexCode')
+      .mockResolvedValue(jwt.sign({ userId: 991 }, JWT_SECRET))
+    const now = Date.now()
+    const clock = spyOn(Date, 'now').mockReturnValue(now)
+
+    try {
+      const expiredId = crypto.randomUUID()
+      const start = await get(`/yandex?session_id=${expiredId}`)
+      const state = stateFrom(start.headers.get('Location')!)
+      clock.mockReturnValue(now + 10 * 60_000 + 1)
+      expect((await get(`/yandex/callback?code=test&state=${state}`)).status).toBe(400)
+      expect(exchange).not.toHaveBeenCalled()
+
+      const sessionId = crypto.randomUUID()
+      const next = await get(`/yandex?session_id=${sessionId}`)
+      const nextState = stateFrom(next.headers.get('Location')!)
+      const callbacks = await Promise.all([
+        get(`/yandex/callback?code=test&state=${nextState}`),
+        get(`/yandex/callback?code=test&state=${nextState}`),
+      ])
+      expect(callbacks.map(response => response.status).sort()).toEqual([200, 400])
+      expect(exchange).toHaveBeenCalledTimes(1)
+      const results = await Promise.all([status(sessionId), status(sessionId)])
+      expect(results.map(result => result.status).sort()).toEqual(['pending', 'success'])
+    }
+    finally {
+      clock.mockRestore()
+      exchange.mockRestore()
+    }
+  })
+
+  it('binds linking to the authenticated user and rejects an expired legacy link credential', async () => {
+    const link = spyOn(authService, 'linkYandex').mockResolvedValue(undefined)
+    const sessionId = crypto.randomUUID()
+    const start = (token?: string) => app.handle(new Request(`${api}/yandex/link`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ sessionId, locale: 'zh' }),
+    }))
+
+    try {
+      expect((await start()).status).toBe(401)
+      const response = await start(jwt.sign({ userId: 991 }, JWT_SECRET, { expiresIn: 60 }))
+      expect(response.status).toBe(200)
+      const { redirectUrl } = await response.json()
+      const state = stateFrom(redirectUrl)
+      const completed = await get(`/yandex/callback?code=test&state=${state}`)
+      expect(await completed.text()).toContain('Yandex ID 已绑定')
+      expect(await status(sessionId)).toEqual({ status: 'success', linked: true })
+      expect(link).toHaveBeenCalledWith(991, 'test')
+      const expiredToken = jwt.sign({ userId: 991 }, JWT_SECRET, { expiresIn: -1 })
+      expect((await get(`/yandex?linkToken=${expiredToken}`)).status).toBe(401)
+    }
+    finally {
+      link.mockRestore()
+    }
+  })
+})

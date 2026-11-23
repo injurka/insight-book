@@ -1,6 +1,7 @@
 import type { IUserRepository } from '../repositories/interfaces'
 import path from 'node:path'
 import jwt from 'jsonwebtoken'
+import { z } from 'zod'
 import { AUTH_MODE, FRONTEND_URL, JWT_SECRET, UNISENDER_API_KEY, YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { ROLES } from '../constants/roles'
@@ -8,6 +9,21 @@ import { userRepository } from '../repositories/user.repository'
 import { AppError } from '../utils/errors'
 import { logger } from '../utils/logger'
 import { storageService } from './storage.service'
+
+const providerTimeout = 15_000
+const yandexTokenSchema = z.object({ access_token: z.string().min(1) })
+const yandexUserSchema = z.object({
+  id: z.union([z.string().trim().min(1), z.number().int().positive()]),
+  login: z.string().trim().min(1).nullish(),
+  default_email: z.email().nullish(),
+  emails: z.array(z.email()).nullish(),
+  default_avatar_id: z.string().nullish(),
+  is_avatar_empty: z.boolean().nullish(),
+})
+
+function yandexCallbackUrl() {
+  return new URL('/api/auth/yandex/callback', FRONTEND_URL).href
+}
 
 type DbUser = NonNullable<Awaited<ReturnType<IUserRepository['findById']>>>
 
@@ -27,7 +43,7 @@ export class AuthService {
       email: user.email,
       yandexId: user.yandexId,
       isYandexLinked: Boolean(user.yandexId),
-      hasPassword: Boolean(user.email && user.passwordHash),
+      hasPassword: Boolean(user.passwordHash),
       role: user.role,
       subscriptionTier: user.subscriptionTier || 'free',
       usedTokens: totalTokens,
@@ -59,7 +75,7 @@ export class AuthService {
 
     const user = await this.userRepo.findByLogin(login)
 
-    if (!user)
+    if (!user?.passwordHash)
       throw new AppError(401, ERROR_CODES.AUTH.INVALID_CREDENTIALS, 'Invalid credentials')
 
     const isMatch = await Bun.password.verify(passwordString, user.passwordHash)
@@ -220,51 +236,42 @@ export class AuthService {
     return { success: true, username: newUsername }
   }
 
-  async handleYandexAuth(state?: string) {
+  async handleYandexAuth(state: string) {
     const url = new URL('https://oauth.yandex.ru/authorize')
     url.searchParams.set('response_type', 'code')
     url.searchParams.set('client_id', YANDEX_CLIENT_ID)
-    url.searchParams.set('redirect_uri', `${FRONTEND_URL}/api/auth/yandex/callback`)
+    url.searchParams.set('redirect_uri', yandexCallbackUrl())
 
-    if (state)
-      url.searchParams.set('state', state)
+    url.searchParams.set('state', state)
 
     return { redirectUrl: url.toString() }
   }
 
   private async fetchYandexUserData(code: string) {
-    const WEB_REDIRECT_URI = `${FRONTEND_URL}/api/auth/yandex/callback`
     const tokenRes = await fetch('https://oauth.yandex.ru/token', {
       method: 'POST',
+      signal: AbortSignal.timeout(providerTimeout),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Authorization': `Basic ${Buffer.from(`${YANDEX_CLIENT_ID}:${YANDEX_CLIENT_SECRET}`).toString('base64')}`,
       },
-      body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: WEB_REDIRECT_URI }).toString(),
+      body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: yandexCallbackUrl() }).toString(),
     })
+    const tokenData = yandexTokenSchema.safeParse(tokenRes.ok ? await tokenRes.json().catch(() => null) : null)
 
-    if (!tokenRes.ok) {
-      const errText = await tokenRes.text().catch(() => '')
-      throw new AppError(400, ERROR_CODES.AUTH.OAUTH_TOKEN_EXCHANGE_FAILED, `Failed to exchange token: ${errText}`)
-    }
-
-    const tokenData = (await tokenRes.json()) as { access_token: string }
+    if (!tokenData.success)
+      throw new AppError(400, ERROR_CODES.AUTH.OAUTH_TOKEN_EXCHANGE_FAILED, 'Failed to exchange Yandex code')
 
     const userRes = await fetch('https://login.yandex.ru/info?format=json', {
-      headers: { Authorization: `OAuth ${tokenData.access_token}` },
+      signal: AbortSignal.timeout(providerTimeout),
+      headers: { Authorization: `OAuth ${tokenData.data.access_token}` },
     })
+    const userData = yandexUserSchema.safeParse(userRes.ok ? await userRes.json().catch(() => null) : null)
 
-    if (!userRes.ok)
-      throw new AppError(400, ERROR_CODES.AUTH.OAUTH_USER_INFO_FAILED, 'Failed to fetch user info')
+    if (!userData.success)
+      throw new AppError(400, ERROR_CODES.AUTH.OAUTH_USER_INFO_FAILED, 'Failed to fetch Yandex user info')
 
-    return (await userRes.json()) as {
-      id: string | number
-      login?: string
-      default_email?: string
-      emails?: string[]
-      default_avatar_id?: string
-      is_avatar_empty?: boolean
-    }
+    return userData.data
   }
 
   async exchangeYandexCode(code: string) {
@@ -273,33 +280,39 @@ export class AuthService {
     let user = await this.userRepo.findByYandexId(yandexId)
 
     if (!user) {
-      const email = userData.default_email || userData.emails?.[0] || null
+      const email = userData.default_email || userData.emails?.[0]
 
-      if (email) {
-        const userWithEmail = await this.userRepo.findByEmail(email)
+      const existing = email && await this.userRepo.findByEmail(email)
 
-        if (userWithEmail) {
-          user = await this.userRepo.updateUser(userWithEmail.id, { yandexId })
-        }
+      if (existing) {
+        if (existing.yandexId === yandexId)
+          return jwt.sign({ userId: existing.id }, JWT_SECRET, { expiresIn: '30d' })
+
+        // A matching email does not authorize linking to an existing InsightBook account.
+        throw new AppError(409, ERROR_CODES.AUTH.EMAIL_ALREADY_EXISTS, 'Sign in to the existing account and link Yandex in settings')
       }
 
-      if (!user) {
-        let proposedUsername = userData.login || `yandex_${yandexId}`
-        const existing = await this.userRepo.findByUsername(proposedUsername)
+      let username = userData.login || `yandex_${yandexId}`
 
-        if (existing)
-          proposedUsername = `yandex_${yandexId}_${Date.now()}`
+      if (await this.userRepo.findByUsername(username))
+        username = `yandex_${yandexId}_${crypto.randomUUID().slice(0, 8)}`
 
-        const dummyPassword = await Bun.password.hash(crypto.randomUUID())
+      try {
         user = await this.userRepo.createUser({
-          email: email || undefined,
+          email,
           yandexId,
-          username: proposedUsername,
-          passwordHash: dummyPassword,
+          username,
+          passwordHash: '',
           avatarUrl: (userData.default_avatar_id && !userData.is_avatar_empty)
             ? `https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-200`
             : null,
         })
+      }
+      catch (error) {
+        user = await this.userRepo.findByYandexId(yandexId)
+
+        if (!user)
+          throw error
       }
     }
 
@@ -334,10 +347,31 @@ export class AuthService {
       updatePayload.avatarUrl = `https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-200`
     }
 
-    return this.userRepo.updateUser(userId, updatePayload)
+    if (currentUser.yandexId)
+      throw new AppError(409, ERROR_CODES.AUTH.OAUTH_ALREADY_LINKED, 'This account already has a linked Yandex ID')
+
+    let linked: DbUser | undefined
+
+    try {
+      linked = await this.userRepo.updateYandexLink(userId, null, updatePayload)
+    }
+    catch (error) {
+      if (!await this.userRepo.findByYandexId(yandexId))
+        throw error
+    }
+
+    if (linked)
+      return linked
+
+    const winner = await this.userRepo.findByYandexId(yandexId)
+
+    if (winner?.id === userId)
+      return winner
+
+    throw new AppError(409, ERROR_CODES.AUTH.OAUTH_ALREADY_LINKED, 'A Yandex ID is already linked')
   }
 
-  async unlinkProvider(userId: number, provider: string) {
+  async unlinkProvider(userId: number, provider: string, password?: string) {
     if (provider !== 'yandex')
       throw new AppError(400, ERROR_CODES.SYSTEM.VALIDATION_ERROR, 'Неподдерживаемый провайдер')
 
@@ -349,10 +383,11 @@ export class AuthService {
     if (!user.yandexId)
       throw new AppError(400, ERROR_CODES.AUTH.OAUTH_NOT_LINKED, 'Этот аккаунт не привязан.')
 
-    if (!user.email)
-      throw new AppError(400, ERROR_CODES.AUTH.CANNOT_UNLINK_LAST_AUTH, 'Нельзя отвязать единственный способ входа в аккаунт. Сначала укажите почту или другой способ входа.')
+    // Older OAuth-only accounts have a placeholder hash that looks like a real one.
+    if (!user.passwordHash || !password || !await Bun.password.verify(password, user.passwordHash))
+      throw new AppError(400, ERROR_CODES.AUTH.CANNOT_UNLINK_LAST_AUTH, 'Confirm a working InsightBook password before unlinking Yandex')
 
-    const updatedUser = await this.userRepo.updateUser(userId, { yandexId: null })
+    const updatedUser = await this.userRepo.updateYandexLink(userId, user.yandexId, { yandexId: null })
 
     if (!updatedUser)
       throw new AppError(500, ERROR_CODES.SYSTEM.INTERNAL_SERVER_ERROR, 'Failed to update user')

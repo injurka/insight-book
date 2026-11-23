@@ -2,6 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      if (['/api/auth/yandex/callback', '/auth/yandex/callback'].includes(window.location.pathname)) {
+        const referrer = document.createElement('meta')
+        referrer.name = 'referrer'
+        referrer.content = 'no-referrer'
+        document.head.append(referrer)
+      }
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.ico" />
     <meta
       name="viewport"

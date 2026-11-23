@@ -1,20 +1,29 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitInput } from '~/02.kit/atoms/kit-input/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useAccountSettings } from '../../../composables/use-account-settings'
 
 const { t } = useI18n()
-
 const {
+  user,
   isYandexLinked,
   isLinking,
   isUnlinking,
   isUnlinkModalVisible,
-  linkOAuth,
+  linkYandex,
   openUnlinkModal,
   confirmUnlink,
 } = useAccountSettings()
+
+const unlinkPassword = ref('')
+
+watch(isUnlinkModalVisible, (visible) => {
+  if (!visible)
+    unlinkPassword.value = ''
+})
 </script>
 
 <template>
@@ -62,7 +71,7 @@ const {
             size="sm"
             :disabled="isLinking"
             :loading="isLinking"
-            @click="linkOAuth('yandex')"
+            @click="linkYandex"
           >
             {{ t('settings.link', 'Привязать') }}
           </KitBtn>
@@ -76,24 +85,34 @@ const {
       :title="t('settings.unlinkConfirmTitle', 'Отвязать аккаунт?')"
       :max-width="440"
     >
-      <div class="unlink-dialog-content">
+      <form class="unlink-dialog-content" @submit.prevent="confirmUnlink(unlinkPassword)">
         <p class="unlink-desc">
-          {{ t('settings.unlinkConfirmDesc', { provider: 'Яндекс' }) }}
+          {{ user?.hasPassword === false ? t('settings.yandexOnlyLogin') : t('settings.unlinkConfirmDesc', { provider: 'Яндекс' }) }}
         </p>
+        <KitInput
+          v-if="user?.hasPassword !== false"
+          v-model="unlinkPassword"
+          type="password"
+          autocomplete="current-password"
+          :placeholder="t('signIn.password')"
+          :aria-label="t('signIn.password')"
+        />
         <div class="dialog-actions">
           <KitBtn variant="tonal" size="sm" @click="isUnlinkModalVisible = false">
             {{ t('common.cancel', 'Отмена') }}
           </KitBtn>
           <KitBtn
+            v-if="user?.hasPassword !== false"
+            type="submit"
             color="error"
             size="sm"
+            :disabled="!unlinkPassword || isUnlinking"
             :loading="isUnlinking"
-            @click="confirmUnlink"
           >
             {{ t('settings.unlink', 'Отвязать') }}
           </KitBtn>
         </div>
-      </div>
+      </form>
     </KitDialog>
   </div>
 </template>

@@ -185,11 +185,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function applyAuthResponse(res: { user: UserData | null, mode: string }) {
-    const prevUserId = user.value?.id ?? null
-    const prevSingleMode = isSingleMode.value
-    const nextUserId = res.user?.id ?? null
     const nextSingleMode = res.mode === 'single'
-    const authChanged = prevUserId !== nextUserId || prevSingleMode !== nextSingleMode
+    const authChanged = user.value?.id !== res.user?.id || isSingleMode.value !== nextSingleMode
 
     user.value = res.user
     isSingleMode.value = nextSingleMode
@@ -209,7 +206,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
     else {
       localStorage.setItem('insight_auth_mode', res.mode)
-      clearAuthSession()
+
+      if (authSessionIdentity())
+        clearAuthSession()
+
       localStorage.removeItem('insight_uid')
       localStorage.removeItem('insight_user_data')
       setAuthQueryScope(null)
@@ -352,8 +352,8 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function unlinkProvider(provider: string) {
-    const res = await repos.auth.unlinkProvider(provider)
+  async function unlinkProvider(provider: string, password?: string) {
+    const res = await repos.auth.unlinkProvider(provider, password)
 
     if (res.user) {
       user.value = res.user

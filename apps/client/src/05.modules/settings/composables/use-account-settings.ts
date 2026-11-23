@@ -4,15 +4,16 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { getApiEndpointUrl, isTauri } from '~/01.shared/lib/env'
-import { pollOAuthStatus } from '~/01.shared/lib/poll-oauth-status'
+import { isTauri } from '~/01.shared/lib/env'
+import { oauthErrorKey } from '~/01.shared/lib/oauth-flow'
+import { isOAuthAborted, isOAuthLinkSuccess, OAuthTimeoutError, pollOAuthStatus } from '~/01.shared/lib/poll-oauth-status'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
 export function useAccountSettings() {
   const authStore = useAuthStore()
   const repos = useRepos()
   const toast = useToast()
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
 
   const user = computed(() => authStore.user)
   const isYandexLinked = computed(() => Boolean(authStore.user?.yandexId || authStore.user?.isYandexLinked))
@@ -30,38 +31,47 @@ export function useAccountSettings() {
     oauthAbortController = null
   }
 
-  async function linkOAuth(provider: 'yandex') {
+  async function linkYandex() {
+    if (isLinking.value)
+      return
+
+    const controller = new AbortController()
+    oauthAbortController = controller
+    isLinking.value = true
+
     try {
-      const token = localStorage.getItem('insight_token') || ''
+      const sessionId = isTauri ? uuidv4() : undefined
+      const { redirectUrl } = await repos.auth.startYandexLink({ sessionId, locale: locale.value }, { signal: controller.signal })
+      controller.signal.throwIfAborted()
 
-      if (isTauri) {
-        isLinking.value = true
-        clearPolling()
-        const sessionId = uuidv4()
-        const url = getApiEndpointUrl(`/api/auth/${provider}?session_id=${sessionId}&linkToken=${encodeURIComponent(token)}`)
+      if (!sessionId) {
+        window.location.assign(redirectUrl)
 
-        await openUrl(url)
-
-        oauthAbortController = new AbortController()
-        const data = await pollOAuthStatus(signal => repos.auth.oauthStatus(sessionId, { signal }), { signal: oauthAbortController.signal })
-
-        if (data.status === 'error')
-          throw new Error(data.error || t('settings.linkFailed', 'Не удалось привязать аккаунт'))
-
-        isLinking.value = false
-        toast.success(t('settings.yandexLinkedSuccess', 'Аккаунт Яндекс успешно привязан!'))
-        await authStore.checkAuth()
+        return
       }
-      else {
-        window.location.href = getApiEndpointUrl(`/api/auth/${provider}?linkToken=${encodeURIComponent(token)}`)
+
+      await openUrl(redirectUrl)
+      const data = await pollOAuthStatus(signal => repos.auth.oauthStatus(sessionId, { signal }), { signal: controller.signal })
+
+      if (!isOAuthLinkSuccess(data)) {
+        toast.error(t(data.error ? oauthErrorKey(data.error) : 'settings.linkFailed'))
+
+        return
+      }
+
+      await authStore.checkAuth()
+
+      if (!controller.signal.aborted)
+        toast.success(t('settings.yandexLinkedSuccess'))
+    }
+    catch (error) {
+      if (!isOAuthAborted(controller.signal, error)) {
+        toast.error(t(error instanceof OAuthTimeoutError ? 'signIn.oauthTimeout' : 'settings.linkFailed'))
       }
     }
-    catch (e: unknown) {
-      if (e instanceof Error && e.name === 'AbortError')
-        return
-
+    finally {
+      clearPolling()
       isLinking.value = false
-      toast.error(e instanceof Error ? e.message : t('settings.linkFailed', 'Не удалось привязать аккаунт'))
     }
   }
 
@@ -70,14 +80,14 @@ export function useAccountSettings() {
     isUnlinkModalVisible.value = true
   }
 
-  async function confirmUnlink() {
-    if (!providerToUnlink.value)
+  async function confirmUnlink(password: string) {
+    if (isUnlinking.value || !providerToUnlink.value || !password)
       return
 
     isUnlinking.value = true
 
     try {
-      await authStore.unlinkProvider(providerToUnlink.value)
+      await authStore.unlinkProvider(providerToUnlink.value, password)
       toast.success(t('settings.yandexUnlinkedSuccess', 'Аккаунт Яндекс успешно отвязан'))
       isUnlinkModalVisible.value = false
     }
@@ -86,7 +96,6 @@ export function useAccountSettings() {
     }
     finally {
       isUnlinking.value = false
-      providerToUnlink.value = null
     }
   }
 
@@ -122,7 +131,7 @@ export function useAccountSettings() {
     isUnlinkModalVisible,
     providerToUnlink,
     isUsernamePromptOpen,
-    linkOAuth,
+    linkYandex,
     openUnlinkModal,
     confirmUnlink,
     updateAvatar,

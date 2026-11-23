@@ -1,12 +1,16 @@
+import type { OAuthAttempt, OAuthStatus } from '../services/yandex-oauth.service'
 import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { authSessionService } from '../services/auth-session.service'
 import { authService } from '../services/auth.service'
+import { completeOAuthAttempt, startOAuthAttempt, takeOAuthAttempt, takeOAuthResult } from '../services/yandex-oauth.service'
 import { cachePlugin } from '../utils/cache'
 import { AppError, handleElysiaError } from '../utils/errors'
+import { logger } from '../utils/logger'
 import { createRateLimiter, getClientIp } from '../utils/rate-limit'
+import { getOAuthLocale, oauthHeaders, oauthResultPage } from '../views/oauth-result'
 
 const authPlugin = new Elysia({ name: 'auth-plugin' })
   .derive(({ request }) => {
@@ -46,31 +50,59 @@ const authPlugin = new Elysia({ name: 'auth-plugin' })
   })
   .as('global')
 
-const AUTH_SESSION_TTL_MS = 10 * 60 * 1000
-const authSessions = new Map<string, { value: string, createdAt: number }>()
+const oauthStartLimiter = createRateLimiter(20, 60_000)
+const oauthId = t.String({ pattern: '^[A-Za-z0-9_-]{22,128}$' })
 
-function pruneAuthSessions(now = Date.now()) {
-  for (const [sessionId, session] of authSessions) {
-    if (now - session.createdAt > AUTH_SESSION_TTL_MS)
-      authSessions.delete(sessionId)
+function oauthRedirect(location: string | URL) {
+  return new Response(null, { status: 302, headers: { ...oauthHeaders, Location: String(location) } })
+}
+
+function getLegacyLinkUserId(token: string): number {
+  try {
+    const payload = jwt.verify(token, JWT_SECRET)
+
+    if (typeof payload !== 'string' && Number.isSafeInteger(payload.userId) && payload.userId > 0)
+      return payload.userId
   }
+  catch { }
+
+  throw new AppError(401, ERROR_CODES.AUTH.INVALID_TOKEN, 'Invalid token')
 }
 
-function saveAuthSession(sessionId: string, value: string) {
-  pruneAuthSessions()
-  authSessions.set(sessionId, { value, createdAt: Date.now() })
-}
+async function resolveOAuthResult(attempt: OAuthAttempt, code?: string, providerError?: string): Promise<OAuthStatus> {
+  if (providerError || !code)
+    return { status: 'error', error: providerError === 'access_denied' ? 'cancelled' : 'failed' }
 
-function consumeAuthSession(sessionId: string): string | undefined {
-  pruneAuthSessions()
-  const session = authSessions.get(sessionId)
+  try {
+    if (attempt.linkUserId) {
+      await authService.linkYandex(attempt.linkUserId, code)
 
-  if (!session)
-    return undefined
+      return { status: 'success', linked: true }
+    }
 
-  authSessions.delete(sessionId)
+    const token = await authService.exchangeYandexCode(code)
 
-  return session.value
+    if (attempt.mode === 'legacy')
+      return { status: 'success', token }
+
+    const { userId } = jwt.verify(token, JWT_SECRET) as { userId: number }
+
+    return { status: 'success', ...await authSessionService.create(userId) }
+  }
+  catch (error) {
+    const conflict = error instanceof AppError && (
+      error.code === ERROR_CODES.AUTH.OAUTH_ALREADY_LINKED || error.code === ERROR_CODES.AUTH.EMAIL_ALREADY_EXISTS
+    )
+
+    if (!conflict) {
+      logger.warn({
+        reason: error instanceof AppError ? error.code : error instanceof Error ? error.name : 'unknown',
+        action: attempt.linkUserId ? 'link' : 'login',
+      }, 'Yandex OAuth callback failed')
+    }
+
+    return { status: 'error', error: conflict ? 'account_conflict' : 'failed' }
+  }
 }
 
 const sessionLimiter = createRateLimiter(60, 60 * 1000)
@@ -147,211 +179,104 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
       password: t.String({ minLength: 6, error: 'Пароль должен быть не менее 6 символов' }),
     }),
   })
-  .get('/yandex', async ({ query }) => {
-    const sessionId = query.session_id as string | undefined || (query.session === 'web' ? crypto.randomUUID() : undefined)
-    const linkToken = query.linkToken as string | undefined
-    let linkUserId: number | undefined
+  .get('/yandex', async ({ query, request }) => {
+    oauthStartLimiter(getClientIp(request))
+    // Older native clients pass the link credential in the URL.
+    const linkUserId = query.linkToken === undefined ? undefined : getLegacyLinkUserId(query.linkToken)
+    const mode = query.session ?? (query.session_id ? 'legacy' : 'web')
+    const locale = getOAuthLocale(query.lang || request.headers.get('Accept-Language') || undefined)
+    const state = startOAuthAttempt({ sessionId: query.session_id ?? crypto.randomUUID(), mode, locale, linkUserId })
 
-    if (linkToken) {
-      try {
-        const decoded = jwt.verify(linkToken, JWT_SECRET) as { userId: number }
-        linkUserId = decoded.userId
-      }
-      catch { }
-    }
-
-    let state: string | undefined
-
-    if (sessionId || linkUserId) {
-      const stateObj = {
-        sessionId: sessionId || undefined,
-        renewableSession: query.session === 'desktop' || query.session === 'web',
-        webSession: query.session === 'web',
-        linkUserId: linkUserId || undefined,
-        nonce: crypto.randomUUID(),
-      }
-      state = Buffer.from(JSON.stringify(stateObj)).toString('base64url')
-    }
-
-    const res = await authService.handleYandexAuth(state)
-
-    return Response.redirect(res.redirectUrl, 302)
+    return oauthRedirect((await authService.handleYandexAuth(state)).redirectUrl)
+  }, {
+    query: t.Object({
+      session_id: t.Optional(oauthId),
+      session: t.Optional(t.Union([t.Literal('desktop'), t.Literal('web')])),
+      lang: t.Optional(t.String({ maxLength: 32 })),
+      linkToken: t.Optional(t.String({ maxLength: 2048 })),
+    }),
   })
-  .get('/yandex/callback', async ({ query, set }) => {
-    const code = query.code as string | undefined
-    const state = query.state as string | undefined
+  .post('/yandex/link', async ({ userId, body, request, set }) => {
+    oauthStartLimiter(getClientIp(request))
+    Object.assign(set.headers, oauthHeaders)
+    const state = startOAuthAttempt({
+      sessionId: body.sessionId ?? crypto.randomUUID(),
+      mode: body.sessionId ? 'desktop' : 'web',
+      locale: getOAuthLocale(body.locale),
+      linkUserId: userId!,
+    })
 
-    if (!code)
-      throw new AppError(400, ERROR_CODES.AUTH.NO_CODE_PROVIDED, 'No code provided')
-
-    let sessionId: string | undefined
-    let linkUserId: number | undefined
-    let renewableSession = false
-    let webSession = false
-
-    if (state) {
-      try {
-        const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf-8'))
-        sessionId = parsed.sessionId
-        renewableSession = parsed.renewableSession === true
-        webSession = parsed.webSession === true
-        linkUserId = parsed.linkUserId ? Number(parsed.linkUserId) : undefined
-      }
-      catch {
-        sessionId = state
-      }
-    }
-
-    if (linkUserId) {
-      try {
-        await authService.linkYandex(linkUserId, code)
-
-        if (sessionId) {
-          saveAuthSession(sessionId, JSON.stringify({ status: 'success', linked: true }))
-          const html = `
-            <!DOCTYPE html>
-            <html lang="ru">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>Привязка аккаунта</title>
-              <style>
-                body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #0d1117; color: #fff; text-align: center; }
-                .icon { font-size: 64px; margin-bottom: 16px; color: #22c55e; }
-              </style>
-            </head>
-            <body>
-              <div class="icon">✓</div>
-              <h2>Аккаунт Яндекс успешно привязан!</h2>
-              <p style="color: #8b949e;">Вы можете закрыть этот браузер и вернуться в приложение InsightBook.</p>
-            </body>
-            </html>
-          `
-          set.headers['Content-Type'] = 'text/html; charset=utf-8'
-
-          return html
-        }
-
-        const frontendUrl = new URL(FRONTEND_URL)
-        frontendUrl.pathname = '/settings'
-        frontendUrl.searchParams.set('oauth_success', 'yandex_linked')
-
-        return Response.redirect(frontendUrl.toString(), 302)
-      }
-      catch (error: unknown) {
-        const errMessage = error instanceof Error ? error.message : 'Не удалось привязать Яндекс аккаунт'
-
-        if (sessionId) {
-          saveAuthSession(sessionId, JSON.stringify({ status: 'error', error: errMessage }))
-          const html = `
-            <!DOCTYPE html>
-            <html lang="ru">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>Ошибка привязки</title>
-              <style>
-                body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #0d1117; color: #fff; text-align: center; }
-                .icon { font-size: 64px; margin-bottom: 16px; color: #ef4444; }
-              </style>
-            </head>
-            <body>
-              <div class="icon">✕</div>
-              <h2>Не удалось привязать аккаунт</h2>
-              <p style="color: #8b949e;">${errMessage}</p>
-            </body>
-            </html>
-          `
-          set.headers['Content-Type'] = 'text/html; charset=utf-8'
-
-          return html
-        }
-
-        const frontendUrl = new URL(FRONTEND_URL)
-        frontendUrl.pathname = '/settings'
-        frontendUrl.searchParams.set('oauth_error', errMessage)
-
-        return Response.redirect(frontendUrl.toString(), 302)
-      }
-    }
-
-    const token = await authService.exchangeYandexCode(code)
-
-    if (sessionId) {
-      if (renewableSession) {
-        const payload = jwt.verify(token, JWT_SECRET) as { userId: number }
-        const session = await authSessionService.create(payload.userId)
-        saveAuthSession(sessionId, JSON.stringify({ status: 'success', ...session }))
-      }
-      else {
-        saveAuthSession(sessionId, token)
-      }
-
-      if (webSession) {
-        const frontendUrl = new URL(FRONTEND_URL)
-        frontendUrl.pathname = '/auth/yandex/callback'
-        frontendUrl.searchParams.set('session_id', sessionId)
-
-        return Response.redirect(frontendUrl.toString(), 302)
-      }
-
-      const html = `
-        <!DOCTYPE html>
-        <html lang="ru">
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>Авторизация</title>
-          <style>
-            body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #0d1117; color: #fff; text-align: center; }
-            .icon { font-size: 64px; margin-bottom: 16px; color: #22c55e; }
-          </style>
-        </head>
-        <body>
-          <div class="icon">✓</div>
-          <h2>Вход успешно выполнен!</h2>
-          <p style="color: #8b949e;">Вы можете закрыть этот браузер и вернуться в приложение InsightBook.</p>
-        </body>
-        </html>
-      `
-      set.headers['Content-Type'] = 'text/html; charset=utf-8'
-
-      return html
-    }
-
-    const frontendUrl = new URL(FRONTEND_URL)
-    frontendUrl.pathname = '/auth/yandex/callback'
-    frontendUrl.searchParams.set('token', token)
-
-    return Response.redirect(frontendUrl.toString(), 302)
+    return authService.handleYandexAuth(state)
+  }, {
+    requireAuth: true,
+    body: t.Object({ sessionId: t.Optional(oauthId), locale: t.Optional(t.String({ maxLength: 32 })) }),
   })
-  .get('/status', async ({ query }) => {
-    const sessionId = query.session_id as string | undefined
+  .get('/yandex/callback', async ({ request }) => {
+    const query = new URL(request.url).searchParams
+    const state = query.get('state')
+    const attempt = state && query.getAll('state').length === 1 ? takeOAuthAttempt(state) : undefined
 
-    if (!sessionId)
-      throw new AppError(400, ERROR_CODES.AUTH.NO_SESSION_ID, 'No session id')
+    if (!attempt) {
+      const locale = getOAuthLocale(request.headers.get('Accept-Language') || undefined)
 
-    const sessionData = consumeAuthSession(sessionId)
-
-    if (sessionData) {
-      try {
-        const parsed = JSON.parse(sessionData)
-
-        return parsed
-      }
-      catch {
-        return { status: 'success', token: sessionData }
-      }
+      return oauthResultPage(
+        'expired',
+        locale,
+        new URL('/sign-in', FRONTEND_URL),
+        false,
+        400,
+      )
     }
 
-    return { status: 'pending' }
-  }, { cache: 'shortPrivate' })
-  .post('/unlink-provider', async ({ userId, body }) => {
-    return authService.unlinkProvider(userId as number, body.provider)
+    const code = query.getAll('code').length === 1 ? query.get('code') ?? undefined : undefined
+    const result = await resolveOAuthResult(attempt, code, query.has('error') ? query.get('error') || 'failed' : undefined)
+    completeOAuthAttempt(attempt, result)
+
+    if (attempt.mode !== 'web') {
+      const page = result.status === 'error'
+        ? result.error === 'cancelled' ? 'cancelled' : 'failed'
+        : attempt.linkUserId ? 'linked' : 'success'
+
+      return oauthResultPage(
+        page,
+        attempt.locale,
+        new URL('insightbook://auth/yandex/return'),
+        true,
+      )
+    }
+
+    if (attempt.linkUserId) {
+      const location = new URL('/settings', FRONTEND_URL)
+
+      if (result.status === 'error')
+        location.searchParams.set('oauth_error', result.error)
+      else
+        location.searchParams.set('oauth_success', 'yandex_linked')
+
+      takeOAuthResult(attempt.sessionId)
+
+      return oauthRedirect(location)
+    }
+
+    const location = new URL('/auth/yandex/callback', FRONTEND_URL)
+    location.searchParams.set('session_id', attempt.sessionId)
+
+    return oauthRedirect(location)
+  })
+  .get('/status', ({ query, set }) => {
+    Object.assign(set.headers, oauthHeaders)
+
+    return takeOAuthResult(query.session_id) ?? { status: 'pending' }
+  }, { query: t.Object({ session_id: oauthId }) })
+  .post('/unlink-provider', async ({ userId, body, request }) => {
+    authLimiter(getClientIp(request))
+
+    return authService.unlinkProvider(userId as number, body.provider, body.password)
   }, {
     requireAuth: true,
     body: t.Object({
       provider: t.String({ minLength: 1 }),
+      password: t.Optional(t.String({ minLength: 1, maxLength: 1024 })),
     }),
   })
   .get('/me', async ({ userId, request }) => {

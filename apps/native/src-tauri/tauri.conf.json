@@ -44,12 +44,6 @@
       },
       "mobile": [
         {
-          "host": "insight-book.ru",
-          "pathPrefix": [
-            "/api/auth/yandex/callback"
-          ]
-        },
-        {
           "schemes": [
             "insightbook"
           ],

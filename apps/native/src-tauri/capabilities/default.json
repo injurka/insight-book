@@ -56,6 +56,7 @@
       "identifier": "opener:allow-open-url",
       "allow": [
         { "url": "https://insight-book-api.limited-dissolve.ru/*" },
+        { "url": "https://oauth.yandex.ru/authorize?*" },
         { "url": "https://cdn.insight-book.ru/*" },
         { "url": "https://github.com/injurka/insight-book/*" }
       ]

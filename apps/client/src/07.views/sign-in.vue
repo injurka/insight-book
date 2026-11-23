@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import type { NativeOAuthAttempt } from '~/01.shared/lib/oauth-flow'
 import { Icon } from '@iconify/vue'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { v4 as uuidv4 } from 'uuid'
-import { onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useRepos } from '~/00.plugins/di'
@@ -12,7 +13,9 @@ import { useToast } from '~/01.shared/composables/use-toast'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { getApiEndpointUrl, isTauri } from '~/01.shared/lib/env'
-import { hasOAuthSession, pollOAuthStatus } from '~/01.shared/lib/poll-oauth-status'
+import { clearNativeOAuthAttempt, loadNativeOAuthAttempt, OAUTH_ATTEMPT_TTL_MS, oauthErrorKey, saveNativeOAuthAttempt, WEB_OAUTH_ATTEMPT_KEY, webOAuthAttemptValue } from '~/01.shared/lib/oauth-flow'
+import { hasOAuthSession, isOAuthAborted, OAuthTimeoutError, pollOAuthStatus } from '~/01.shared/lib/poll-oauth-status'
+import { authSessionIdentity, authSessionSnapshot } from '~/01.shared/services/auth-session.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
@@ -33,6 +36,7 @@ const appLangOptions = [
   { label: '中文', value: 'zh' },
 ]
 const isLoading = ref(false)
+const isOAuthWaiting = ref(false)
 const isCodeSent = ref(false)
 const currentTab = ref<'login' | 'register'>('login')
 let oauthAbortController: AbortController | null = null
@@ -137,6 +141,9 @@ async function refreshAuthenticatedUser() {
     throw new Error(t('signIn.errorAuth'))
 }
 async function handleSignIn(payload: { username: string, password: string }) {
+  if (isLoading.value)
+    return
+
   isLoading.value = true
 
   try {
@@ -154,6 +161,9 @@ async function handleSignIn(payload: { username: string, password: string }) {
   }
 }
 async function handleSendCode(emailVal: string) {
+  if (isLoading.value)
+    return
+
   isLoading.value = true
 
   try {
@@ -169,6 +179,9 @@ async function handleSendCode(emailVal: string) {
   }
 }
 async function handleRegister(payload: { email: string, code: string, password: string }) {
+  if (isLoading.value)
+    return
+
   isLoading.value = true
 
   try {
@@ -184,43 +197,81 @@ async function handleRegister(payload: { email: string, code: string, password: 
     isLoading.value = false
   }
 }
-async function loginYandex() {
+function loginYandex() {
+  if (isLoading.value)
+    return
+
+  const sessionId = uuidv4()
+  const identity = authSessionIdentity()
+  const params = new URLSearchParams({
+    session_id: sessionId,
+    session: isTauri ? 'desktop' : 'web',
+    lang: settingsStore.appLanguage,
+  })
+  const url = getApiEndpointUrl(`/api/auth/yandex?${params}`)
+
+  if (isTauri) {
+    const attempt = { sessionId, identity, expiresAt: Date.now() + OAUTH_ATTEMPT_TTL_MS }
+    void finishNativeOAuth(attempt, url)
+
+    return
+  }
+
   try {
-    if (isTauri) {
-      isLoading.value = true
+    sessionStorage.setItem(WEB_OAUTH_ATTEMPT_KEY, webOAuthAttemptValue(sessionId, identity))
+    window.location.assign(url)
+  }
+  catch {
+    toast.error(t('signIn.errorAuth'))
+  }
+}
 
-      const sessionId = uuidv4()
-      const url = getApiEndpointUrl(`/api/auth/yandex?session_id=${sessionId}&session=desktop`)
+async function finishNativeOAuth(attempt: NativeOAuthAttempt, url?: string) {
+  const controller = new AbortController()
+  oauthAbortController = controller
+  isLoading.value = true
 
+  try {
+    const snapshot = authSessionSnapshot()
+
+    if (url) {
+      saveNativeOAuthAttempt(localStorage, attempt)
       await openUrl(url)
-
-      oauthAbortController?.abort()
-      oauthAbortController = new AbortController()
-      const data = await pollOAuthStatus(signal => repos.auth.oauthStatus(sessionId, { signal }), { signal: oauthAbortController.signal })
-
-      if (data.status === 'error')
-        throw new Error(data.error || t('signIn.errorAuth'))
-
-      if (!hasOAuthSession(data))
-        throw new Error(t('signIn.errorAuth'))
-
-      repos.auth.acceptOAuthSession(data)
-
-      await refreshAuthenticatedUser()
-      trackEvent('login_success')
-      await router.push('/')
+      controller.signal.throwIfAborted()
     }
-    else {
-      window.location.href = getApiEndpointUrl('/api/auth/yandex?session=web')
+
+    isOAuthWaiting.value = true
+    const data = await pollOAuthStatus(signal => repos.auth.oauthStatus(attempt.sessionId, { signal }), {
+      signal: controller.signal,
+      timeoutMs: Math.max(1, attempt.expiresAt - Date.now()),
+    })
+
+    if (!hasOAuthSession(data))
+      throw new Error(t(oauthErrorKey(data.error)))
+
+    isOAuthWaiting.value = false
+    repos.auth.acceptOAuthSession(data, snapshot)
+
+    await refreshAuthenticatedUser()
+    trackEvent('login_success')
+    await router.push('/')
+  }
+  catch (error) {
+    if (!isOAuthAborted(controller.signal, error)) {
+      toast.error(error instanceof OAuthTimeoutError
+        ? t('signIn.oauthTimeout')
+        : error instanceof Error ? error.message : t('signIn.errorAuth'))
     }
   }
-  catch (e: unknown) {
-    console.error('Yandex login error:', e)
+  finally {
+    oauthAbortController = null
+    isOAuthWaiting.value = false
     isLoading.value = false
-
-    if (!(e instanceof Error && e.name === 'AbortError'))
-      toast.error(e instanceof Error ? e.message : 'Error opening Yandex login')
+    clearNativeOAuthAttempt(localStorage, attempt)
   }
+}
+function cancelOAuth() {
+  oauthAbortController?.abort()
 }
 function startPress() {
   if (showAuthControls.value)
@@ -255,8 +306,17 @@ function handleClick() {
   }, 400)
 }
 
+onMounted(() => {
+  if (isTauri) {
+    const attempt = loadNativeOAuthAttempt(localStorage, authSessionIdentity())
+
+    if (attempt)
+      void finishNativeOAuth(attempt)
+  }
+})
+
 onUnmounted(() => {
-  oauthAbortController?.abort()
+  cancelOAuth()
 
   if (pressTimer)
     clearTimeout(pressTimer)
@@ -371,6 +431,14 @@ onUnmounted(() => {
         </div>
 
         <AuthOAuthProviders :is-loading="isLoading" @login-yandex="loginYandex" />
+        <div v-if="isOAuthWaiting" class="oauth-waiting">
+          <p role="status">
+            {{ t('signIn.oauthWaiting') }}
+          </p>
+          <button type="button" @click="cancelOAuth">
+            {{ t('signIn.oauthCancel') }}
+          </button>
+        </div>
 
         <div v-if="showAuthControls" class="divider">
           <span class="divider-line" />
@@ -435,6 +503,26 @@ onUnmounted(() => {
 </template>
 
 <style scoped lang="scss">
+.oauth-waiting {
+  margin-top: 12px;
+  color: var(--fg-secondary-color);
+  text-align: center;
+
+  p {
+    margin: 0;
+  }
+
+  button {
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0;
+    background: none;
+    color: var(--fg-primary-color);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+}
+
 .sign-in-root {
   padding-top: var(--safe-area-top);
   position: relative;

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
+import { oauthErrorKey } from '~/01.shared/lib/oauth-flow'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useCacheStore } from '~/01.shared/store/cache.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
@@ -62,7 +63,7 @@ onMounted(() => {
     router.replace({ query: {} })
   }
   else if (route.query.oauth_error) {
-    toast.error(decodeURIComponent(String(route.query.oauth_error)))
+    toast.error(t(oauthErrorKey(typeof route.query.oauth_error === 'string' ? route.query.oauth_error : undefined)))
     currentTab.value = 'account'
     router.replace({ query: {} })
   }

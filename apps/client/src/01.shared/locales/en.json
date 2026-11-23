@@ -39,6 +39,14 @@
     "usernameUpdated": "Username changed"
   },
   "signIn": {
+    "oauthWaiting": "Finish signing in in your browser, then return here.",
+    "oauthCancel": "Cancel sign-in",
+    "oauthCancelled": "Yandex sign-in was cancelled.",
+    "oauthConflict": "This account is already associated with other sign-in details. Sign in as usual and check the linked account in Settings.",
+    "oauthTimeout": "Sign-in timed out. Start again to retry.",
+    "oauthExpired": "This sign-in attempt is no longer valid. Start again to retry.",
+    "oauthFinishing": "Finishing sign-in…",
+    "oauthBack": "Back to sign-in",
     "title": "Library Login",
     "subtitle": "Enter your credentials to access",
     "username": "Username",
@@ -230,6 +238,7 @@
     "notLinked": "Not connected",
     "link": "Link",
     "unlink": "Unlink",
+    "yandexOnlyLogin": "Yandex is your only way to sign in. You need a working InsightBook password to unlink it.",
     "unlinkConfirmTitle": "Unlink account?",
     "unlinkConfirmDesc": "Are you sure you want to unlink {provider} from your profile?",
     "yandexLinkedSuccess": "Yandex account linked successfully!",
@@ -1265,7 +1274,7 @@
       "LLM_ERROR": "AI service error",
       "OAUTH_ALREADY_LINKED": "This account is already linked to another user.",
       "OAUTH_NOT_LINKED": "This account is not linked.",
-      "CANNOT_UNLINK_LAST_AUTH": "Cannot unlink the only login method for this account."
+      "CANNOT_UNLINK_LAST_AUTH": "Confirm your current InsightBook password to unlink Yandex."
     }
   },
   "pronunciation": {

@@ -39,6 +39,14 @@
     "usernameUpdated": "用户名已更改"
   },
   "signIn": {
+    "oauthWaiting": "请在浏览器中完成登录，然后返回这里。",
+    "oauthCancel": "取消登录",
+    "oauthCancelled": "已取消通过 Yandex 登录。",
+    "oauthConflict": "此账号已关联其他登录信息。请使用原有方式登录，并在设置中检查账号绑定。",
+    "oauthTimeout": "登录已超时，请重新发起登录。",
+    "oauthExpired": "本次登录已失效，请重新发起登录。",
+    "oauthFinishing": "正在完成登录…",
+    "oauthBack": "返回登录",
     "title": "登录书库",
     "subtitle": "输入凭据以访问",
     "username": "用户名",
@@ -230,6 +238,7 @@
     "notLinked": "未关联",
     "link": "关联",
     "unlink": "解除关联",
+    "yandexOnlyLogin": "Yandex 是您唯一的登录方式。解除绑定需要有效的 InsightBook 密码。",
     "unlinkConfirmTitle": "解除关联账户？",
     "unlinkConfirmDesc": "您确定要从个人资料中解除与 {provider} 的关联吗？",
     "yandexLinkedSuccess": "Yandex 账户关联成功！",
@@ -1264,7 +1273,7 @@
       "LLM_ERROR": "AI服务错误",
       "OAUTH_ALREADY_LINKED": "该账户已与其他用户关联。",
       "OAUTH_NOT_LINKED": "该账户未关联。",
-      "CANNOT_UNLINK_LAST_AUTH": "无法解除该账户唯一的登录方式。"
+      "CANNOT_UNLINK_LAST_AUTH": "请输入当前的 InsightBook 密码来解除 Yandex 绑定。"
     }
   },
   "pronunciation": {

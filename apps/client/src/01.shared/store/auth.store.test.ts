@@ -1,7 +1,7 @@
 import type { UserData } from '~/01.shared/types/models'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { acceptAuthSession } from '../services/auth-session.service'
+import { acceptAuthSession, authSessionSnapshot } from '../services/auth-session.service'
 import { useAuthStore } from './auth.store'
 
 const meMock = vi.fn()
@@ -87,6 +87,16 @@ describe('authStore - checkAuth', () => {
       role: 'user',
       auth_mode: 'multi',
     })
+  })
+
+  it('keeps a pending sign-in valid when startup confirms the browser is already signed out', async () => {
+    meMock.mockResolvedValue({ user: null, mode: 'multi' })
+    const snapshot = authSessionSnapshot()
+
+    await useAuthStore().checkAuth()
+
+    expect(authSessionSnapshot()).toBe(snapshot)
+    expect(localStorage.getItem('insight_auth_mode')).toBe('multi')
   })
 
   it('ignores an old auth response after the OAuth callback stores a new token', async () => {

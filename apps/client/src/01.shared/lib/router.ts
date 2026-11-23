@@ -350,7 +350,8 @@ router.afterEach((to, _from, failure) => {
     return
 
   const { trackPageview } = useTracking()
-  trackPageview(to.fullPath, String(to.name || ''))
+  const pageviewPath = to.name === AppRouteNames.YandexCallback ? to.path : to.fullPath
+  trackPageview(pageviewPath, String(to.name || ''))
 
   if (to.name === AppRouteNames.Home) {
     try {

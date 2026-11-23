@@ -70,7 +70,12 @@ function getDiagnosticUrl(requestValue: RequestInfo | URL, baseUrl?: string): st
   const rawUrl = requestValue instanceof Request ? requestValue.url : String(requestValue)
 
   try {
-    return new URL(rawUrl, baseUrl || window.location.origin).href
+    const url = new URL(rawUrl, baseUrl || window.location.origin)
+
+    if (url.pathname === '/api/auth/status')
+      url.searchParams.delete('session_id')
+
+    return url.href
   }
   catch {
     return rawUrl
@@ -311,8 +316,16 @@ export const api = {
         'Pragma': 'no-cache',
       },
     }),
+    startYandexLink: async (data: { sessionId?: string, locale: string }, options?: ApiRequestOptions) =>
+      request<{ redirectUrl: string }>('/api/auth/yandex/link', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        signal: options?.signal,
+        silentErrors: true,
+      }),
     oauthStatus: async (sessionId: string, options?: ApiRequestOptions) => request<unknown>(`/api/auth/status?session_id=${encodeURIComponent(sessionId)}`, {
       timeout: REQUEST_TIMEOUT_MS,
+      retry: 0,
       silentErrors: true,
       signal: options?.signal,
       headers: {
@@ -334,10 +347,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username }),
     }),
-    unlinkProvider: async (provider: string) => request<{ success: boolean, user: UserData }>('/api/auth/unlink-provider', {
+    unlinkProvider: async (provider: string, password?: string) => request<{ success: boolean, user: UserData }>('/api/auth/unlink-provider', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider }),
+      body: JSON.stringify({ provider, password }),
     }),
   },
   books: {
