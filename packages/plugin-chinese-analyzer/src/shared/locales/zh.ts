@@ -3,6 +3,7 @@ export default {
   notifyActivated: '汉语句子深度解析插件已启用',
   notifyDeactivated: '汉语句子深度解析插件已停用',
   pageTitle: '汉语句子结构实验室',
+  inputLabel: '句子',
   inputPlaceholder: '输入中文或俄语句子',
   detectedZh: '中文 → 深度结构解析',
   detectedRu: '俄语 → 翻译为中文 + 深度解析',

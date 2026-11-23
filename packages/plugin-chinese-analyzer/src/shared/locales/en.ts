@@ -3,6 +3,7 @@ export default {
   notifyActivated: 'Chinese Sentence Analyzer plugin activated',
   notifyDeactivated: 'Chinese Sentence Analyzer plugin deactivated',
   pageTitle: 'Chinese Sentence Lab',
+  inputLabel: 'Sentence',
   inputPlaceholder: 'Enter a sentence in Chinese or Russian',
   detectedZh: 'Chinese → Deep Breakdown',
   detectedRu: 'Russian → Translate + Deep Breakdown',

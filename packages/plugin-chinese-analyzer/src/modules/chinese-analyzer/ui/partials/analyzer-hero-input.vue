@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAnalyzerVoice } from '../../composables/use-analyzer-voice'
 
@@ -11,7 +11,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   'update:modelValue': [value: string]
   'analyze': [customInput?: string]
@@ -19,9 +18,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const voice = useAnalyzerVoice()
+const editorId = useId()
 
 const WAVE_MULTIPLIERS = [0.45, 0.78, 1.25, 1.65, 1.25, 0.78, 0.45]
 
+const showEditor = computed(() => !voice.isRecording.value && !voice.isTranscribing.value)
 const detectedBadgeText = computed(() => {
   if (props.detectedLanguage === 'zh') {
     return t('plugins.chinese-analyzer.detectedZh')
@@ -33,7 +34,6 @@ const detectedBadgeText = computed(() => {
 
   return t('plugins.chinese-analyzer.detectedAuto')
 })
-
 const detectedBadgeIcon = computed(() => {
   if (props.detectedLanguage === 'zh') {
     return 'mdi:ideogram-cjk-variant'
@@ -41,14 +41,12 @@ const detectedBadgeIcon = computed(() => {
 
   return 'mdi:translate'
 })
-
 const formattedDuration = computed(() => {
   const mins = Math.floor(voice.recordingDuration.value / 60)
   const secs = voice.recordingDuration.value % 60
 
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 })
-
 const waveBarStyles = computed(() => {
   const baseScale = Math.min(1.85, Math.max(0.32, voice.audioLevel.value / 28))
 
@@ -65,18 +63,15 @@ function onInput(event: Event): void {
   const target = event.target as HTMLTextAreaElement
   emit('update:modelValue', target.value)
 }
-
 function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Enter' && !event.shiftKey) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
     event.preventDefault()
     emit('analyze')
   }
 }
-
 function onClear(): void {
   emit('update:modelValue', '')
 }
-
 async function handleFinishVoiceRecording(): Promise<void> {
   const transcribed = await voice.stopRecording()
 
@@ -85,7 +80,6 @@ async function handleFinishVoiceRecording(): Promise<void> {
     emit('analyze', transcribed)
   }
 }
-
 async function handleStartVoiceRecording(): Promise<void> {
   if (props.isAnalyzing || voice.isTranscribing.value) {
     return
@@ -101,15 +95,12 @@ async function handleStartVoiceRecording(): Promise<void> {
 
 <template>
   <section class="hero-input-section">
-    <div
-      class="input-card"
-      :class="{
-        'is-analyzing': props.isAnalyzing,
-        'is-recording': voice.isRecording.value || voice.isTranscribing.value,
-      }"
-    >
+    <div class="input-card">
       <div class="input-card-top">
-        <div class="lang-detect-pill" :class="`lang-${props.detectedLanguage}`">
+        <component :is="showEditor ? 'label' : 'span'" class="editor-label" :for="showEditor ? editorId : undefined">
+          {{ t('plugins.chinese-analyzer.inputLabel') }}
+        </component>
+        <div class="lang-detect-pill">
           <Icon :icon="detectedBadgeIcon" class="pill-icon" />
           <span>{{ detectedBadgeText }}</span>
         </div>
@@ -162,9 +153,10 @@ async function handleStartVoiceRecording(): Promise<void> {
       <!-- Normal Text + Voice Input Area -->
       <div v-else class="textarea-wrapper">
         <textarea
+          :id="editorId"
           :value="props.modelValue"
           class="sentence-textarea"
-          rows="2"
+          rows="3"
           :placeholder="t('plugins.chinese-analyzer.inputPlaceholder')"
           :disabled="props.isAnalyzing"
           @input="onInput"
@@ -172,26 +164,28 @@ async function handleStartVoiceRecording(): Promise<void> {
         />
 
         <div class="input-actions">
-          <button
-            v-if="props.modelValue.trim()"
-            type="button"
-            class="clear-btn"
-            :disabled="props.isAnalyzing"
-            :title="t('plugins.chinese-analyzer.clearInput')"
-            @click="onClear"
-          >
-            <Icon icon="mdi:close" />
-          </button>
-
           <!-- Voice Input Mic Button -->
           <button
             type="button"
             class="voice-mic-btn"
             :disabled="props.isAnalyzing"
             :title="t('plugins.chinese-analyzer.voiceStartTooltip')"
+            :aria-label="t('plugins.chinese-analyzer.voiceStartTooltip')"
             @click="handleStartVoiceRecording"
           >
             <Icon icon="mdi:microphone" />
+          </button>
+
+          <button
+            v-if="props.modelValue.trim()"
+            type="button"
+            class="clear-btn"
+            :disabled="props.isAnalyzing"
+            :title="t('plugins.chinese-analyzer.clearInput')"
+            :aria-label="t('plugins.chinese-analyzer.clearInput')"
+            @click="onClear"
+          >
+            <Icon icon="mdi:close" />
           </button>
 
           <button
@@ -201,7 +195,7 @@ async function handleStartVoiceRecording(): Promise<void> {
             @click="emit('analyze')"
           >
             <Icon
-              :icon="props.isAnalyzing ? 'mdi:refresh' : 'mdi:auto-fix'"
+              :icon="props.isAnalyzing ? 'mdi:refresh' : 'mdi:arrow-right'"
               class="submit-icon"
               :class="{ spinning: props.isAnalyzing }"
             />
@@ -236,251 +230,160 @@ async function handleStartVoiceRecording(): Promise<void> {
 }
 
 .input-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px 20px;
-  border-radius: 20px;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(var(--fg-accent-color-rgb), 0.12) 0%, transparent 55%),
-    var(--bg-secondary-color);
-  border: 1px solid var(--border-primary-color);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
-  transition:
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
-
-  &:focus-within,
-  &.is-recording {
-    border-color: var(--fg-accent-color);
-    box-shadow:
-      0 0 0 3px rgba(var(--fg-accent-color-rgb), 0.14),
-      0 12px 30px rgba(0, 0, 0, 0.08);
-  }
-
-  &.is-analyzing {
-    border-color: var(--fg-accent-color);
-  }
-
-  @include media-down(sm) {
-    padding: 10px 12px;
-    gap: 8px;
-    border-radius: 14px;
-    box-shadow: none;
-  }
+  display: grid;
+  gap: 14px;
+  padding: clamp(12px, 3vw, 22px);
+  border: 1px solid var(--border-secondary-color);
+  border-radius: 24px;
+  background: var(--bg-secondary-color);
 }
 
 .input-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
   flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 4px;
+}
+
+.editor-label {
+  color: var(--fg-primary-color);
+  font-size: 0.92rem;
+  font-weight: 700;
 }
 
 .lang-detect-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: var(--bg-tertiary-color);
+  gap: 6px;
   color: var(--fg-secondary-color);
-  border: 1px solid var(--border-secondary-color);
-  transition: all 0.2s ease;
+  font-size: 0.75rem;
+  line-height: 1.4;
 
   .pill-icon {
-    font-size: 0.95rem;
+    flex: none;
+    font-size: 1rem;
     color: var(--fg-accent-color);
-  }
-
-  &.lang-zh {
-    background: rgba(var(--fg-accent-color-rgb), 0.12);
-    color: var(--fg-accent-color);
-    border-color: rgba(var(--fg-accent-color-rgb), 0.3);
-  }
-
-  &.lang-ru {
-    background: rgba(38, 157, 105, 0.12);
-    color: var(--fg-success-color);
-    border-color: rgba(38, 157, 105, 0.3);
-
-    .pill-icon {
-      color: var(--fg-success-color);
-    }
-  }
-
-  @include media-down(sm) {
-    font-size: 0.7rem;
-    padding: 2px 8px;
   }
 }
 
 .textarea-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 15px;
-  background: var(--bg-primary-color);
+  display: grid;
+  min-width: 0;
   border: 1px solid var(--border-secondary-color);
+  border-radius: 17px;
+  background: var(--bg-primary-color);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 
-  @include media-down(sm) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    padding: 6px 2px 2px;
-    background: transparent;
-    border: none;
-    border-radius: 0;
+  &:focus-within {
+    border-color: var(--fg-accent-color);
+    box-shadow: 0 0 0 3px rgba(var(--fg-accent-color-rgb), 0.12);
   }
 }
 
 .sentence-textarea {
-  flex: 1;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 7.5rem;
   min-width: 0;
-  border: none;
+  padding: 16px;
+  border: 0;
+  border-radius: 17px 17px 0 0;
   outline: none;
-  resize: none;
+  resize: vertical;
   background: transparent;
   color: var(--fg-primary-color);
-  font-family: inherit;
-  font-size: 1.12rem;
-  font-weight: 500;
-  line-height: 1.45;
+  caret-color: var(--fg-accent-color);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.6;
 
-  &::placeholder {
-    color: var(--fg-tertiary-color);
-    font-size: 0.94rem;
-    font-weight: 400;
+  @media (pointer: coarse) {
+    resize: none;
   }
 
-  @include media-down(sm) {
-    font-size: 0.98rem;
-    line-height: 1.4;
-
-    &::placeholder {
-      font-size: 0.85rem;
-    }
+  &::placeholder {
+    color: var(--fg-secondary-color);
+    opacity: 1;
   }
 }
 
 .input-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-
-  @include media-down(sm) {
-    justify-content: flex-end;
-    padding-top: 6px;
-    border-top: 1px solid var(--border-secondary-color);
-  }
-}
-
-.clear-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  border: 1px solid var(--border-secondary-color);
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--border-secondary-color);
+  border-radius: 0 0 17px 17px;
   background: var(--bg-secondary-color);
-  color: var(--fg-secondary-color);
-  cursor: pointer;
-  transition: all 0.18s ease;
-
-  &:hover:not(:disabled) {
-    color: var(--fg-primary-color);
-    border-color: var(--border-primary-color);
-    background: var(--bg-tertiary-color);
-  }
-
-  @include media-down(sm) {
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
-    background: var(--bg-primary-color);
-  }
 }
 
-.voice-mic-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  border: 1px solid rgba(var(--fg-accent-color-rgb), 0.32);
-  background: rgba(var(--fg-accent-color-rgb), 0.12);
-  color: var(--fg-accent-color);
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.18s ease;
-
-  &:hover:not(:disabled) {
-    background: var(--fg-accent-color);
-    color: #ffffff;
-
-    box-shadow: 0 4px 12px rgba(var(--fg-accent-color-rgb), 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  @include media-down(sm) {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    font-size: 1.1rem;
-  }
-}
-
+.clear-btn,
+.voice-mic-btn,
 .analyze-submit-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 42px;
-  padding: 0 18px;
-  border-radius: 12px;
-  border: none;
-  background: linear-gradient(135deg, var(--fg-accent-color) 0%, #c94b1e 100%);
-  color: #ffffff;
-  font-family: inherit;
-  font-size: 0.92rem;
-  font-weight: 700;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  font: inherit;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(var(--fg-accent-color-rgb), 0.3);
-  transition:
-    box-shadow 0.18s ease,
-    opacity 0.18s ease;
 
-  &:hover:not(:disabled) {
-    box-shadow: 0 6px 18px rgba(var(--fg-accent-color-rgb), 0.4);
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
   }
 
   &:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    box-shadow: none;
+    cursor: default;
+  }
+}
+
+.clear-btn,
+.voice-mic-btn {
+  width: 44px;
+  flex: none;
+  background: transparent;
+  color: var(--fg-secondary-color);
+  font-size: 1.2rem;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not(:disabled) {
+      background: var(--bg-tertiary-color);
+      color: var(--fg-primary-color);
+    }
+  }
+}
+
+.analyze-submit-btn {
+  max-width: 100%;
+  margin-inline-start: auto;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--fg-primary-color);
+  color: var(--bg-primary-color);
+  font-size: 0.875rem;
+  font-weight: 700;
+
+  &:disabled {
+    background: var(--bg-tertiary-color);
+    color: var(--fg-secondary-color);
+  }
+
+  &:active:not(:disabled) {
+    opacity: 0.82;
   }
 
   .submit-icon {
-    font-size: 1.1rem;
-  }
-
-  @include media-down(sm) {
-    height: 36px;
-    padding: 0 14px;
-    border-radius: 10px;
-    font-size: 0.84rem;
+    order: 1;
+    flex: none;
+    font-size: 1.15rem;
   }
 }
 

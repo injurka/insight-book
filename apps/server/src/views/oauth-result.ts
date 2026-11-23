@@ -75,31 +75,29 @@ export function oauthResultPage(
   <style>
     :root {
       color-scheme: light dark;
-      --background: #f5efe5;
-      --card: #fffcf7;
-      --border: #e2d7c8;
-      --text: #2b2723;
-      --muted: #66584c;
-      --button: #3b2d55;
-      --button-text: #fff;
-      --mark: #196247;
-      --mark-bg: #dfefe4;
-      --notice: #8a480f;
-      --notice-bg: #faead7;
+      --paper: #f8f7ef;
+      --edge: #d4dfd3;
+      --ink: #142b23;
+      --muted: #486158;
+      --jade: #216550;
+      --halo: #e1efe4;
+      --button: #173e31;
+      --button-text: #f8fff8;
+      --notice: #805127;
+      --notice-bg: #f4e6d3;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --background: #17141d;
-        --card: #241f2c;
-        --border: #42384d;
-        --text: #f9f4f9;
-        --muted: #c8bccd;
-        --button: #e1d1fa;
-        --button-text: #30203e;
-        --mark: #95e2bb;
-        --mark-bg: #213b34;
-        --notice: #ffd19e;
-        --notice-bg: #4a3328;
+        --paper: #111e1b;
+        --edge: #334b42;
+        --ink: #edf5ee;
+        --muted: #acbeb5;
+        --jade: #a0e2bf;
+        --halo: #213e34;
+        --button: #b8e9ca;
+        --button-text: #132e23;
+        --notice: #f3c28e;
+        --notice-bg: #3f3023;
       }
     }
     * { box-sizing: border-box; }
@@ -109,59 +107,94 @@ export function oauthResultPage(
       min-height: 100svh;
       display: grid;
       place-items: center;
-      padding: 20px;
-      padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
-               max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
-      background: var(--background);
-      color: var(--text);
+      padding: 16px;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+               max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      background: var(--paper);
+      color: var(--ink);
       font: 1rem/1.5 system-ui, sans-serif;
     }
     main {
-      width: min(100%, 26rem);
-      padding: clamp(22px, 6vw, 36px);
-      border-radius: 24px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      box-shadow: 0 18px 48px rgb(0 0 0 / 8%);
+      width: min(100%, 30rem);
+      text-align: center;
+      padding: clamp(20px, 6vw, 38px);
+      border: 1px solid var(--edge);
+      border-radius: 28px;
     }
-    .brand { font-weight: 700; margin-bottom: 28px; }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .9rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    .brand i {
+      width: 18px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1.5px solid currentColor;
+      background: linear-gradient(90deg, transparent 46%, currentColor 46% 54%, transparent 54%);
+      color: var(--jade);
+    }
     .mark {
       display: grid;
       place-items: center;
-      width: 52px;
-      height: 52px;
-      border-radius: 16px;
-      color: var(--mark);
-      background: var(--mark-bg);
-      font-size: 1.6rem;
-      font-weight: 700;
+      width: 112px;
+      height: 112px;
+      margin: clamp(20px, 6svh, 42px) auto 20px;
+      border: 1px solid var(--edge);
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--halo), transparent 73%);
+      color: var(--jade);
     }
-    .notice { color: var(--notice); background: var(--notice-bg); }
-    h1 { margin: 14px 0 8px; font-size: clamp(1.4rem, 5vw, 1.8rem); line-height: 1.2; }
-    p { margin: 0; color: var(--muted); }
+    .mark span {
+      display: grid;
+      place-items: center;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--halo);
+      font-size: 1.75rem;
+      line-height: 1;
+    }
+    .notice { color: var(--notice); }
+    .notice span { background: var(--notice-bg); }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.85rem, 7vw, 2.65rem);
+      font-weight: 650;
+      letter-spacing: -.045em;
+      line-height: 1.08;
+      text-wrap: balance;
+    }
+    p { margin: 0; color: var(--muted); text-wrap: pretty; }
     a {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 52px;
       margin-top: 24px;
-      padding: 13px 16px;
-      border-radius: 12px;
+      padding: 10px 16px;
+      border-radius: 999px;
       background: var(--button);
       color: var(--button-text);
-      text-align: center;
       text-decoration: none;
       font-weight: 650;
     }
-    a:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+    a:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
     a:active { opacity: .82; }
-    .hint { margin-top: 12px; font-size: .875rem; }
+    .hint { margin-top: 14px; font-size: .8125rem; }
   </style>
 </head>
 <body>
   <main>
-    <div class="brand">InsightBook</div>
-    <div class="mark${completed ? '' : ' notice'}" aria-hidden="true">${mark}</div>
+    <div class="brand"><i aria-hidden="true"></i>InsightBook</div>
+    <div class="mark${completed ? '' : ' notice'}" aria-hidden="true"><span>${mark}</span></div>
     <h1>${labels[result]}</h1>
     <p>${completed ? labels.confirmed : labels.retry}</p>
-    <a href="${href}">${native ? labels.open : labels.back}</a>
+    <a href="${href}">${native ? labels.open : labels.back}<span aria-hidden="true">→</span></a>
     ${native ? `<p class="hint">${labels.manual}</p>` : ''}
   </main>
 </body>
