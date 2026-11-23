@@ -22,7 +22,6 @@ const editorId = useId()
 
 const WAVE_MULTIPLIERS = [0.45, 0.78, 1.25, 1.65, 1.25, 0.78, 0.45]
 
-const showEditor = computed(() => !voice.isRecording.value && !voice.isTranscribing.value)
 const detectedBadgeText = computed(() => {
   if (props.detectedLanguage === 'zh') {
     return t('plugins.chinese-analyzer.detectedZh')
@@ -95,17 +94,7 @@ async function handleStartVoiceRecording(): Promise<void> {
 
 <template>
   <section class="hero-input-section">
-    <div class="input-card">
-      <div class="input-card-top">
-        <component :is="showEditor ? 'label' : 'span'" class="editor-label" :for="showEditor ? editorId : undefined">
-          {{ t('plugins.chinese-analyzer.inputLabel') }}
-        </component>
-        <div class="lang-detect-pill">
-          <Icon :icon="detectedBadgeIcon" class="pill-icon" />
-          <span>{{ detectedBadgeText }}</span>
-        </div>
-      </div>
-
+    <div class="composer">
       <!-- Active Voice Recording Bar -->
       <div v-if="voice.isRecording.value" class="voice-recording-bar">
         <div class="rec-status-left">
@@ -150,24 +139,26 @@ async function handleStartVoiceRecording(): Promise<void> {
         <span>{{ t('plugins.chinese-analyzer.voiceTranscribing') }}</span>
       </div>
 
-      <!-- Normal Text + Voice Input Area -->
-      <div v-else class="textarea-wrapper">
+      <!-- Text Input + Actions -->
+      <template v-else>
+        <label class="sr-only" :for="editorId">
+          {{ t('plugins.chinese-analyzer.inputLabel') }}
+        </label>
         <textarea
           :id="editorId"
           :value="props.modelValue"
           class="sentence-textarea"
-          rows="3"
+          rows="2"
           :placeholder="t('plugins.chinese-analyzer.inputPlaceholder')"
           :disabled="props.isAnalyzing"
           @input="onInput"
           @keydown="onKeydown"
         />
 
-        <div class="input-actions">
-          <!-- Voice Input Mic Button -->
+        <div class="composer-footer">
           <button
             type="button"
-            class="voice-mic-btn"
+            class="icon-btn"
             :disabled="props.isAnalyzing"
             :title="t('plugins.chinese-analyzer.voiceStartTooltip')"
             :aria-label="t('plugins.chinese-analyzer.voiceStartTooltip')"
@@ -176,10 +167,15 @@ async function handleStartVoiceRecording(): Promise<void> {
             <Icon icon="mdi:microphone" />
           </button>
 
+          <span class="lang-hint">
+            <Icon :icon="detectedBadgeIcon" class="hint-icon" />
+            <span class="hint-text">{{ detectedBadgeText }}</span>
+          </span>
+
           <button
             v-if="props.modelValue.trim()"
             type="button"
-            class="clear-btn"
+            class="icon-btn clear-btn"
             :disabled="props.isAnalyzing"
             :title="t('plugins.chinese-analyzer.clearInput')"
             :aria-label="t('plugins.chinese-analyzer.clearInput')"
@@ -194,17 +190,17 @@ async function handleStartVoiceRecording(): Promise<void> {
             :disabled="!props.modelValue.trim() || props.isAnalyzing"
             @click="emit('analyze')"
           >
+            <span>
+              {{ props.isAnalyzing ? t('plugins.chinese-analyzer.analyzingBtn') : t('plugins.chinese-analyzer.analyzeBtn') }}
+            </span>
             <Icon
               :icon="props.isAnalyzing ? 'mdi:refresh' : 'mdi:arrow-right'"
               class="submit-icon"
               :class="{ spinning: props.isAnalyzing }"
             />
-            <span>
-              {{ props.isAnalyzing ? t('plugins.chinese-analyzer.analyzingBtn') : t('plugins.chinese-analyzer.analyzeBtn') }}
-            </span>
           </button>
         </div>
-      </div>
+      </template>
 
       <!-- Voice Error Notification -->
       <div v-if="voice.voiceErrorKey.value" class="voice-error-banner">
@@ -229,50 +225,25 @@ async function handleStartVoiceRecording(): Promise<void> {
   width: 100%;
 }
 
-.input-card {
-  display: grid;
-  gap: 14px;
-  padding: clamp(12px, 3vw, 22px);
-  border: 1px solid var(--border-secondary-color);
-  border-radius: 24px;
-  background: var(--bg-secondary-color);
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-.input-card-top {
+/* Единая поверхность ввода: текст и действия в одном контейнере */
+.composer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  column-gap: 12px;
-  row-gap: 4px;
-}
-
-.editor-label {
-  color: var(--fg-primary-color);
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-.lang-detect-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--fg-secondary-color);
-  font-size: 0.75rem;
-  line-height: 1.4;
-
-  .pill-icon {
-    flex: none;
-    font-size: 1rem;
-    color: var(--fg-accent-color);
-  }
-}
-
-.textarea-wrapper {
-  display: grid;
+  flex-direction: column;
   min-width: 0;
   border: 1px solid var(--border-secondary-color);
-  border-radius: 17px;
+  border-radius: 20px;
   background: var(--bg-primary-color);
   transition:
     border-color 0.18s ease,
@@ -282,76 +253,77 @@ async function handleStartVoiceRecording(): Promise<void> {
     border-color: var(--fg-accent-color);
     box-shadow: 0 0 0 3px rgba(var(--fg-accent-color-rgb), 0.12);
   }
+
+  @include media-down(sm) {
+    border-radius: 16px;
+  }
 }
 
 .sentence-textarea {
   box-sizing: border-box;
   display: block;
   width: 100%;
-  min-height: 7.5rem;
   min-width: 0;
-  padding: 16px;
+  min-height: 4.6rem;
+  max-height: min(45vh, 16rem);
+  padding: 16px 18px 6px;
   border: 0;
-  border-radius: 17px 17px 0 0;
   outline: none;
-  resize: vertical;
+  resize: none;
+  overflow-y: auto;
+  field-sizing: content;
   background: transparent;
   color: var(--fg-primary-color);
   caret-color: var(--fg-accent-color);
   font: inherit;
-  font-size: 1rem;
+  font-size: 1.05rem;
   line-height: 1.6;
 
-  @media (pointer: coarse) {
-    resize: none;
-  }
-
   &::placeholder {
-    color: var(--fg-secondary-color);
+    color: var(--fg-tertiary-color);
     opacity: 1;
   }
+
+  @include media-down(sm) {
+    padding: 12px 14px 4px;
+    font-size: 1rem;
+  }
 }
 
-.input-actions {
+.composer-footer {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  padding: 8px;
-  border-top: 1px solid var(--border-secondary-color);
-  border-radius: 0 0 17px 17px;
-  background: var(--bg-secondary-color);
+  gap: 4px;
+  padding: 6px 8px 8px;
+
+  @include media-down(sm) {
+    padding: 4px 6px 6px;
+  }
 }
 
-.clear-btn,
-.voice-mic-btn,
-.analyze-submit-btn {
+.icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  border: 1px solid transparent;
-  border-radius: 11px;
-  font: inherit;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--fg-secondary-color);
+  font-size: 1.25rem;
   cursor: pointer;
 
   &:focus-visible {
     outline: 2px solid var(--fg-accent-color);
-    outline-offset: 2px;
+    outline-offset: -2px;
   }
 
   &:disabled {
+    opacity: 0.5;
     cursor: default;
   }
-}
-
-.clear-btn,
-.voice-mic-btn {
-  width: 44px;
-  flex: none;
-  background: transparent;
-  color: var(--fg-secondary-color);
-  font-size: 1.2rem;
 
   @media (hover: hover) and (pointer: fine) {
     &:hover:not(:disabled) {
@@ -361,29 +333,78 @@ async function handleStartVoiceRecording(): Promise<void> {
   }
 }
 
+.lang-hint {
+  display: inline-flex;
+  align-items: center;
+  flex: 1 1 0;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 6px;
+  color: var(--fg-tertiary-color);
+  font-size: 0.78rem;
+  line-height: 1.3;
+
+  .hint-icon {
+    flex: none;
+    font-size: 1rem;
+    color: var(--fg-accent-color);
+  }
+
+  .hint-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @include media-down(sm) {
+    .hint-text {
+      display: none;
+    }
+  }
+}
+
 .analyze-submit-btn {
-  max-width: 100%;
-  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
   gap: 8px;
-  padding: 6px 12px;
+  height: 40px;
+  margin-inline-start: auto;
+  padding: 0 16px 0 18px;
+  border: 0;
+  border-radius: 12px;
   background: var(--fg-primary-color);
   color: var(--bg-primary-color);
-  font-size: 0.875rem;
+  font: inherit;
+  font-size: 0.9rem;
   font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
 
-  &:disabled {
-    background: var(--bg-tertiary-color);
-    color: var(--fg-secondary-color);
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
   }
 
   &:active:not(:disabled) {
     opacity: 0.82;
   }
 
+  &:disabled {
+    background: var(--bg-tertiary-color);
+    color: var(--fg-tertiary-color);
+    cursor: default;
+  }
+
   .submit-icon {
-    order: 1;
     flex: none;
     font-size: 1.15rem;
+  }
+
+  @include media-down(sm) {
+    padding: 0 14px;
+    font-size: 0.86rem;
   }
 }
 
@@ -394,6 +415,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   justify-content: space-between;
   gap: 12px;
   min-height: 60px;
+  margin: 8px;
   padding: 10px 14px;
   border-radius: 14px;
   background: var(--bg-primary-color);
@@ -497,6 +519,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   justify-content: center;
   gap: 10px;
   min-height: 54px;
+  margin: 8px;
   padding: 10px 14px;
   border-radius: 14px;
   background: var(--bg-primary-color);
@@ -516,6 +539,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin: 0 8px 8px;
   padding: 8px 12px;
   border-radius: 11px;
   background: rgba(239, 68, 68, 0.1);
