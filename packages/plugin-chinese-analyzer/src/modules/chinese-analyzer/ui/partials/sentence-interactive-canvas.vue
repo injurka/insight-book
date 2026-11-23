@@ -281,6 +281,19 @@ onMounted(() => {
             :width="graphLayout.totalWidth"
             :height="graphLayout.totalHeight"
           >
+            <!-- Sentence Boundary Dividers -->
+            <g class="sentence-dividers-group">
+              <line
+                v-for="divider in graphLayout.sentenceDividers"
+                :key="divider.id"
+                :x1="divider.x"
+                y1="24"
+                :x2="divider.x"
+                :y2="graphLayout.totalHeight - 24"
+                class="sentence-divider-line"
+              />
+            </g>
+
             <!-- Syntactic Dependency Arcs between Lexemes -->
             <g class="dependency-arcs-group">
               <path
@@ -926,6 +939,13 @@ onMounted(() => {
   pointer-events: none;
   overflow: visible;
   z-index: 1;
+}
+
+.sentence-divider-line {
+  stroke: var(--border-primary-color);
+  stroke-width: 2px;
+  stroke-dasharray: 8 6;
+  opacity: 0.7;
 }
 
 .hierarchy-edge-path {

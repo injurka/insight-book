@@ -6,6 +6,7 @@ import type {
   LexemeToken,
   SyntacticClause,
 } from '../../modules/chinese-analyzer/model'
+import { groupTokensBySentence } from './sentence-segmentation'
 
 export interface PositionedClauseNode {
   id: string
@@ -70,6 +71,11 @@ export interface CanvasDependencyCurve {
   isActive: boolean
 }
 
+export interface CanvasSentenceDivider {
+  id: string
+  x: number
+}
+
 export interface CanvasGraphLayout {
   totalWidth: number
   totalHeight: number
@@ -79,6 +85,7 @@ export interface CanvasGraphLayout {
   components: PositionedComponentNode[]
   edges: CanvasConnectionEdge[]
   dependencyCurves: CanvasDependencyCurve[]
+  sentenceDividers: CanvasSentenceDivider[]
 }
 
 const CLAUSE_Y = 64
@@ -389,12 +396,33 @@ function layoutDependencyCurves(analysis: ChineseSentenceAnalysis, tokenMap: Map
   return curves
 }
 
+function buildSentenceEndTokenIds(analysis: ChineseSentenceAnalysis): Set<string> {
+  const groups = groupTokensBySentence(analysis.sentence.hanzi, analysis.tokens)
+  const endIds = new Set<string>()
+
+  if (groups.length <= 1) {
+    return endIds
+  }
+
+  for (let i = 0; i < groups.length - 1; i++) {
+    const lastItem = groups[i].items[groups[i].items.length - 1]
+
+    if (lastItem) {
+      endIds.add(lastItem.token.id)
+    }
+  }
+
+  return endIds
+}
+
 export function computeCanvasGraphLayout(analysis: ChineseSentenceAnalysis, expandedTokenIds: string[], selected: CanvasSelectedNode | null): CanvasGraphLayout {
   const tokens: PositionedTokenNode[] = []
   const characters: PositionedCharacterNode[] = []
   const components: PositionedComponentNode[] = []
   const edges: CanvasConnectionEdge[] = []
+  const sentenceDividers: CanvasSentenceDivider[] = []
   const tokenMap = new Map<string, PositionedTokenNode>()
+  const sentenceEndTokenIds = buildSentenceEndTokenIds(analysis)
 
   let cursorX = PADDING_X
 
@@ -431,6 +459,14 @@ export function computeCanvasGraphLayout(analysis: ChineseSentenceAnalysis, expa
     }
 
     cursorX += subWidth + 24
+
+    if (sentenceEndTokenIds.has(token.id)) {
+      sentenceDividers.push({
+        id: `sdiv_${token.id}`,
+        x: cursorX + 16,
+      })
+      cursorX += 56
+    }
   }
 
   const clauses = layoutClauses(
@@ -454,5 +490,6 @@ export function computeCanvasGraphLayout(analysis: ChineseSentenceAnalysis, expa
     components,
     edges,
     dependencyCurves,
+    sentenceDividers,
   }
 }

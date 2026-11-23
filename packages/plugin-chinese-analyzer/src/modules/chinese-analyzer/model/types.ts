@@ -46,6 +46,8 @@ export interface LexemeToken {
   pinyin: string
   tones: ToneNumber[]
   toneSandhiNote?: string
+  sentenceIndex?: number
+  trailingPunctuation?: string
   pos: PartOfSpeechCode
   posLabel: string
   syntacticRole: string

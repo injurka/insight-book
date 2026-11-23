@@ -3,10 +3,15 @@ import type { PhoneticsAnalysis, SyllableTonePoint } from '../../model'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import {
+  groupSyllablesBySentence,
+  splitRhythmIntoSentenceRows,
+} from '../../../../shared/lib/sentence-segmentation'
 import { getTonePitchTriplet } from '../../../../shared/lib/tone-utils'
 
 interface Props {
   phonetics: PhoneticsAnalysis
+  hanzi?: string
 }
 
 const props = defineProps<Props>()
@@ -17,12 +22,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const rhythmSegments = computed(() => {
-  return props.phonetics.rhythmGrouping
-    .split('/')
-    .map(part => part.trim())
-    .filter(Boolean)
-})
+const rhythmRows = computed(() => splitRhythmIntoSentenceRows(props.phonetics.rhythmGrouping))
+const syllableGroups = computed(() => groupSyllablesBySentence(props.hanzi || '', props.phonetics.syllables))
+const hasMultipleSyllableSentences = computed(() => syllableGroups.value.length > 1)
 
 function pitchToY(pitch: number): number {
   const clamped = Math.min(5, Math.max(1, pitch))
@@ -67,18 +69,27 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
       <div class="sub-label">
         {{ t('plugins.chinese-analyzer.rhythmGroupingLabel') }}
       </div>
-      <div class="rhythm-track">
-        <template v-for="(seg, idx) in rhythmSegments" :key="`${seg}_${idx}`">
-          <button
-            type="button"
-            class="rhythm-pill"
-            @click="emit('speak', seg)"
-          >
-            <Icon icon="mdi:volume-medium" class="r-icon" />
-            <span>{{ seg }}</span>
-          </button>
-          <span v-if="idx < rhythmSegments.length - 1" class="pause-slash">/</span>
-        </template>
+      <div class="rhythm-rows">
+        <div
+          v-for="(row, rowIdx) in rhythmRows"
+          :key="`rrow_${rowIdx}`"
+          class="rhythm-track"
+        >
+          <span v-if="rhythmRows.length > 1" class="row-index-badge">
+            {{ rowIdx + 1 }}
+          </span>
+          <template v-for="(seg, idx) in row" :key="`${seg}_${idx}`">
+            <button
+              type="button"
+              class="rhythm-pill"
+              @click="emit('speak', seg)"
+            >
+              <Icon icon="mdi:volume-medium" class="r-icon" />
+              <span>{{ seg }}</span>
+            </button>
+            <span v-if="idx < row.length - 1" class="pause-slash">/</span>
+          </template>
+        </div>
       </div>
       <p v-if="props.phonetics.intonationNote" class="intonation-note">
         {{ props.phonetics.intonationNote }}
@@ -91,59 +102,71 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
         {{ t('plugins.chinese-analyzer.toneContourLabel') }}
       </div>
 
-      <div class="contour-scroll">
+      <div class="contour-groups">
         <div
-          v-for="(syl, idx) in props.phonetics.syllables"
-          :key="`${syl.hanzi}_${idx}`"
-          class="syllable-contour-cell"
-          :class="{ 'has-sandhi': syl.sandhiApplied }"
-          @click="emit('speak', syl.hanzi)"
+          v-for="group in syllableGroups"
+          :key="`sylgrp_${group.sentenceIndex}`"
+          class="contour-sentence-row"
         >
-          <div class="syl-top">
-            <span class="syl-pinyin" :class="`tone-color-${syl.spokenTone}`">{{ syl.pinyin }}</span>
-            <span v-if="syl.sandhiApplied" class="sandhi-badge">变调</span>
+          <span v-if="hasMultipleSyllableSentences" class="row-index-badge contour-row-badge">
+            {{ group.sentenceIndex + 1 }}
+          </span>
+
+          <div class="contour-scroll">
+            <div
+              v-for="(syl, idx) in group.syllables"
+              :key="`${syl.hanzi}_${idx}`"
+              class="syllable-contour-cell"
+              :class="{ 'has-sandhi': syl.sandhiApplied }"
+              @click="emit('speak', syl.hanzi)"
+            >
+              <div class="syl-top">
+                <span class="syl-pinyin" :class="`tone-color-${syl.spokenTone}`">{{ syl.pinyin }}</span>
+                <span v-if="syl.sandhiApplied" class="sandhi-badge">变调</span>
+              </div>
+
+              <svg class="tone-mini-svg" viewBox="0 0 72 68">
+                <line
+                  x1="6"
+                  y1="12"
+                  x2="66"
+                  y2="12"
+                  class="pitch-grid-line"
+                />
+                <line
+                  x1="6"
+                  y1="34"
+                  x2="66"
+                  y2="34"
+                  class="pitch-grid-line"
+                />
+                <line
+                  x1="6"
+                  y1="56"
+                  x2="66"
+                  y2="56"
+                  class="pitch-grid-line"
+                />
+
+                <path
+                  :d="getSyllableCurvePath(syl)"
+                  class="tone-curve-path"
+                  :class="`tone-stroke-${syl.spokenTone}`"
+                />
+
+                <circle
+                  :cx="getSyllableEndPoint(syl).x"
+                  :cy="getSyllableEndPoint(syl).y"
+                  r="3.8"
+                  class="tone-end-dot"
+                  :class="`tone-fill-${syl.spokenTone}`"
+                />
+              </svg>
+
+              <span class="syl-hanzi">{{ syl.hanzi }}</span>
+              <span v-if="syl.note" class="syl-note">{{ syl.note }}</span>
+            </div>
           </div>
-
-          <svg class="tone-mini-svg" viewBox="0 0 72 68">
-            <line
-              x1="6"
-              y1="12"
-              x2="66"
-              y2="12"
-              class="pitch-grid-line"
-            />
-            <line
-              x1="6"
-              y1="34"
-              x2="66"
-              y2="34"
-              class="pitch-grid-line"
-            />
-            <line
-              x1="6"
-              y1="56"
-              x2="66"
-              y2="56"
-              class="pitch-grid-line"
-            />
-
-            <path
-              :d="getSyllableCurvePath(syl)"
-              class="tone-curve-path"
-              :class="`tone-stroke-${syl.spokenTone}`"
-            />
-
-            <circle
-              :cx="getSyllableEndPoint(syl).x"
-              :cy="getSyllableEndPoint(syl).y"
-              r="3.8"
-              class="tone-end-dot"
-              :class="`tone-fill-${syl.spokenTone}`"
-            />
-          </svg>
-
-          <span class="syl-hanzi">{{ syl.hanzi }}</span>
-          <span v-if="syl.note" class="syl-note">{{ syl.note }}</span>
         </div>
       </div>
     </div>
@@ -278,6 +301,12 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
   }
 }
 
+.rhythm-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .rhythm-track {
   display: flex;
   align-items: center;
@@ -287,6 +316,41 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
   @include media-down(sm) {
     gap: 6px;
   }
+}
+
+.row-index-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(var(--fg-accent-color-rgb), 0.14);
+  color: var(--fg-accent-color);
+  font-size: 0.7rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.contour-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contour-sentence-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  & + .contour-sentence-row {
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-secondary-color);
+  }
+}
+
+.contour-row-badge {
+  margin-top: 8px;
 }
 
 .rhythm-pill {

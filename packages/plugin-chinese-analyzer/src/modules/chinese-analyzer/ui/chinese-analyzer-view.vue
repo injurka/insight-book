@@ -156,6 +156,7 @@ onUnmounted(() => {
       <PhoneticsToneFlowCard
         class="analysis-section-divider"
         :phonetics="currentAnalysis.phonetics"
+        :hanzi="currentAnalysis.sentence.hanzi"
         @speak="tts.speakChinese"
       />
 

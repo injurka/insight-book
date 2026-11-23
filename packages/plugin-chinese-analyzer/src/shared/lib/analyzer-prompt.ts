@@ -37,12 +37,12 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
     "originalInput": "exact user query",
     "hanzi": "Simplified Chinese sentence (without trailing spaces)",
     "pinyin": "Full sentence pinyin with tone marks",
-    "translation": "Natural literary translation in ${targetLangName}",
-    "literalTranslation": "Word-by-word literal gloss showing Chinese structural logic (e.g. 'Я / недавно / по отношению к / китайской традиционной культуре / всё более / испытывать интерес / [смена состояния]')",
+    "translation": "Natural literary translation in ${targetLangName}. If there are multiple sentences, separate each sentence with a newline (\\n).",
+    "literalTranslation": "Word-by-word literal gloss showing Chinese structural logic (e.g. 'Я / недавно / по отношению к / китайской традиционной культуре / всё более / испытывать интерес / [смена состояния]'). If there are multiple sentences, separate each sentence with a newline (\\n).",
     "hskLevel": "HSK 1" | "HSK 2" | "HSK 3" | "HSK 4" | "HSK 5" | "HSK 6",
     "register": "Разговорный / Нейтральный / Официальный / Книжный",
     "sentenceType": "Grammatical sentence type (e.g. Топик-комментарий, Конструкция с 把, Повествовательное SVO)",
-    "structuralFormula": "High-level syntactic formula (e.g. [Субъект] + [Время] + 对 + [Объект] + [Степень] + [Предикат] + 了)"
+    "structuralFormula": "High-level syntactic formula (e.g. [Субъект] + [Время] + 对 + [Объект] + [Степень] + [Предикат] + 了). If there are multiple sentences, put each sentence's formula on a separate line (\\n)."
   },
   "clauses": [
     {
@@ -61,6 +61,8 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
       "pinyin": "Word pinyin with tone marks",
       "tones": [3, 4],
       "toneSandhiNote": "Optional note if tone sandhi applies to this word in context, otherwise empty string",
+      "sentenceIndex": 0,
+      "trailingPunctuation": "Punctuation immediately following this word in the sentence (e.g. '，', '？', '。', or '')",
       "pos": "noun" | "verb" | "adj" | "adv" | "pron" | "prep" | "particle" | "measure" | "conj" | "idiom" | "num" | "other",
       "posLabel": "Localized part of speech name",
       "syntacticRole": "Exact syntactic role in this sentence (e.g. Подлежащее, Обстоятельство времени, Предлог направления, Сказуемое)",
@@ -274,6 +276,10 @@ function normalizeToken(raw: unknown, idx: number): LexemeToken {
   const characters = ensureTokenCharacters(hanzi, pinyin, asArray(obj.characters))
   const rawTones = asArray(obj.tones).map(t => normalizeToneNumber(t))
   const tones = rawTones.length > 0 ? rawTones : characters.map(c => c.tone)
+  const rawSentenceIndex = Number(obj.sentenceIndex)
+  const sentenceIndex = Number.isFinite(rawSentenceIndex) && rawSentenceIndex >= 0
+    ? Math.floor(rawSentenceIndex)
+    : undefined
 
   return {
     id: asString(obj.id, `t${idx + 1}`),
@@ -281,6 +287,8 @@ function normalizeToken(raw: unknown, idx: number): LexemeToken {
     pinyin,
     tones,
     toneSandhiNote: asString(obj.toneSandhiNote, ''),
+    sentenceIndex,
+    trailingPunctuation: asString(obj.trailingPunctuation, ''),
     pos: normalizePos(obj.pos),
     posLabel: asString(obj.posLabel, 'Лексема'),
     syntacticRole: asString(obj.syntacticRole, 'Член предложения'),

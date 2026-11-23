@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import type { CanvasSelectedNode, LexemeToken, SentenceOverview } from '../../model'
 import { Icon } from '@iconify/vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import {
+  groupTokensBySentence,
+  splitFormulaIntoLines,
+  splitTextIntoSentenceLines,
+} from '../../../../shared/lib/sentence-segmentation'
 import { getPosClass } from '../../../../shared/lib/tone-utils'
 
 interface Props {
@@ -22,6 +27,12 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const isCopied = ref(false)
+
+const tokenSentenceGroups = computed(() => groupTokensBySentence(props.sentence.hanzi, props.tokens))
+const hasMultipleSentences = computed(() => tokenSentenceGroups.value.length > 1)
+const naturalLines = computed(() => splitTextIntoSentenceLines(props.sentence.translation))
+const literalLines = computed(() => splitTextIntoSentenceLines(props.sentence.literalTranslation))
+const formulaLines = computed(() => splitFormulaIntoLines(props.sentence.structuralFormula))
 
 function isTokenSelected(token: LexemeToken): boolean {
   if (!props.selectedNode) {
@@ -100,22 +111,38 @@ function onTokenClick(token: LexemeToken): void {
       <span class="query-value">«{{ props.sentence.originalInput }}»</span>
     </div>
 
-    <!-- Interactive Ruby Lexeme Ribbon -->
-    <div class="ruby-sentence-ribbon">
-      <button
-        v-for="token in props.tokens"
-        :key="token.id"
-        type="button"
-        class="ruby-token-item"
-        :class="[getPosClass(token.pos), { 'is-selected': isTokenSelected(token) }]"
-        @click="onTokenClick(token)"
+    <!-- Interactive Ruby Lexeme Ribbon (Separated by Sentence Rows) -->
+    <div class="ruby-sentence-ribbon" :class="{ 'is-multi-sentence': hasMultipleSentences }">
+      <div
+        v-for="group in tokenSentenceGroups"
+        :key="`sent_${group.sentenceIndex}`"
+        class="ruby-sentence-row"
       >
-        <span class="ruby-pinyin">{{ token.pinyin }}</span>
-        <span class="ruby-hanzi">
-          {{ token.hanzi }}
+        <span v-if="hasMultipleSentences" class="sentence-index-badge">
+          {{ group.sentenceIndex + 1 }}
         </span>
-        <span class="ruby-gloss">{{ token.meaning }}</span>
-      </button>
+
+        <div class="ruby-sentence-tokens">
+          <template v-for="item in group.items" :key="item.token.id">
+            <button
+              type="button"
+              class="ruby-token-item"
+              :class="[getPosClass(item.token.pos), { 'is-selected': isTokenSelected(item.token) }]"
+              @click="onTokenClick(item.token)"
+            >
+              <span class="ruby-pinyin">{{ item.token.pinyin }}</span>
+              <span class="ruby-hanzi">
+                {{ item.token.hanzi }}
+              </span>
+              <span class="ruby-gloss">{{ item.token.meaning }}</span>
+            </button>
+
+            <span v-if="item.trailingPunctuation" class="ruby-punct">
+              {{ item.trailingPunctuation }}
+            </span>
+          </template>
+        </div>
+      </div>
     </div>
 
     <!-- Translations & Formula Grid (Grouped single surface on mobile) -->
@@ -125,9 +152,15 @@ function onTokenClick(token: LexemeToken): void {
           <Icon icon="mdi:chat-processing-outline" class="box-icon" />
           <span>{{ t('plugins.chinese-analyzer.naturalTranslation') }}</span>
         </div>
-        <p class="box-text primary-translation">
-          {{ props.sentence.translation }}
-        </p>
+        <div class="box-lines-list" :class="{ 'is-multiline': naturalLines.length > 1 }">
+          <p
+            v-for="(line, idx) in naturalLines"
+            :key="`nat_${idx}`"
+            class="box-text primary-translation"
+          >
+            {{ line }}
+          </p>
+        </div>
       </div>
 
       <div class="translation-box literal-box">
@@ -135,9 +168,15 @@ function onTokenClick(token: LexemeToken): void {
           <Icon icon="mdi:layers-triple-outline" class="box-icon" />
           <span>{{ t('plugins.chinese-analyzer.literalTranslation') }}</span>
         </div>
-        <p class="box-text literal-text">
-          {{ props.sentence.literalTranslation }}
-        </p>
+        <div class="box-lines-list" :class="{ 'is-multiline': literalLines.length > 1 }">
+          <p
+            v-for="(line, idx) in literalLines"
+            :key="`lit_${idx}`"
+            class="box-text literal-text"
+          >
+            {{ line }}
+          </p>
+        </div>
       </div>
 
       <div class="translation-box formula-box">
@@ -145,9 +184,15 @@ function onTokenClick(token: LexemeToken): void {
           <Icon icon="mdi:sitemap-outline" class="box-icon" />
           <span>{{ t('plugins.chinese-analyzer.structuralFormula') }}</span>
         </div>
-        <p class="box-text formula-text">
-          {{ props.sentence.structuralFormula }}
-        </p>
+        <div class="box-lines-list" :class="{ 'is-multiline': formulaLines.length > 1 }">
+          <p
+            v-for="(line, idx) in formulaLines"
+            :key="`form_${idx}`"
+            class="box-text formula-text"
+          >
+            {{ line }}
+          </p>
+        </div>
       </div>
     </div>
   </section>
@@ -320,9 +365,8 @@ function onTokenClick(token: LexemeToken): void {
 
 .ruby-sentence-ribbon {
   display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 10px;
+  flex-direction: column;
+  gap: 12px;
   padding: 14px 16px;
   border-radius: 16px;
   background: var(--bg-primary-color);
@@ -330,9 +374,79 @@ function onTokenClick(token: LexemeToken): void {
 
   @include media-down(sm) {
     padding: 10px;
-    gap: 6px;
+    gap: 10px;
     border-radius: 14px;
     background: var(--bg-secondary-color);
+  }
+}
+
+.ruby-sentence-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  .is-multi-sentence & + .ruby-sentence-row {
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-secondary-color);
+
+    @include media-down(sm) {
+      padding-top: 10px;
+    }
+  }
+
+  @include media-down(sm) {
+    gap: 7px;
+  }
+}
+
+.sentence-index-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 6px;
+  border-radius: 7px;
+  background: rgba(var(--fg-accent-color-rgb), 0.12);
+  color: var(--fg-accent-color);
+  font-size: 0.72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+
+  @include media-down(sm) {
+    width: 19px;
+    height: 19px;
+    margin-top: 4px;
+    font-size: 0.66rem;
+    border-radius: 6px;
+  }
+}
+
+.ruby-sentence-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+
+  @include media-down(sm) {
+    gap: 6px;
+  }
+}
+
+.ruby-punct {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 2px;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--fg-tertiary-color);
+  user-select: none;
+
+  @include media-down(sm) {
+    font-size: 1.15rem;
+    padding: 0;
   }
 }
 
@@ -461,7 +575,7 @@ function onTokenClick(token: LexemeToken): void {
 .translation-box {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   padding: 13px 15px;
   border-radius: 14px;
   background: var(--bg-primary-color);
@@ -481,6 +595,17 @@ function onTokenClick(token: LexemeToken): void {
   .box-icon {
     font-size: 0.96rem;
     color: var(--fg-accent-color);
+  }
+
+  .box-lines-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &.is-multiline .box-text + .box-text {
+      padding-top: 6px;
+      border-top: 1px dashed var(--border-secondary-color);
+    }
   }
 
   .box-text {
@@ -509,7 +634,7 @@ function onTokenClick(token: LexemeToken): void {
 
   @include media-down(sm) {
     padding: 9px 12px;
-    gap: 3px;
+    gap: 4px;
     border-radius: 0;
     background: transparent;
     border: none;
@@ -520,6 +645,14 @@ function onTokenClick(token: LexemeToken): void {
 
     .box-label {
       font-size: 0.68rem;
+    }
+
+    .box-lines-list {
+      gap: 4px;
+
+      &.is-multiline .box-text + .box-text {
+        padding-top: 4px;
+      }
     }
 
     .primary-translation {
