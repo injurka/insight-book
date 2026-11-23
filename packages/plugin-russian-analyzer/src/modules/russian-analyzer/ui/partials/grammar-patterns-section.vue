@@ -73,7 +73,7 @@ const { t } = useI18n()
               class="example-row"
             >
               <div class="ex-text">
-                <span class="ex-ru">{{ props.showStressMarks ? ex.stressedText : ex.text }}</span>
+                <span class="ex-ru russian-phonetic-text">{{ props.showStressMarks ? ex.stressedText : ex.text }}</span>
                 <span class="ex-trans">{{ ex.translation }}</span>
               </div>
 

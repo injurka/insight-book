@@ -54,10 +54,10 @@ const { t } = useI18n()
         </div>
 
         <div class="alt-main">
-          <div class="alt-ru">
+          <div class="alt-ru russian-phonetic-text">
             {{ props.showStressMarks ? alt.stressedText : alt.text }}
           </div>
-          <div v-if="alt.ipa" class="alt-ipa">
+          <div v-if="alt.ipa" class="alt-ipa russian-phonetic-text">
             {{ alt.ipa }}
           </div>
           <div class="alt-translation">
@@ -232,7 +232,6 @@ const { t } = useI18n()
   }
 
   .alt-ipa {
-    font-family: monospace;
     font-size: 0.74rem;
     color: var(--fg-accent-color);
   }

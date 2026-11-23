@@ -85,7 +85,7 @@ function onKeydown(event: KeyboardEvent): void {
         @click="model = tab.index"
       >
         <span class="chip-order">{{ tab.order }}</span>
-        <span class="chip-text">{{ props.showStressMarks ? tab.stressedText : tab.text }}</span>
+        <span class="chip-text russian-phonetic-text">{{ props.showStressMarks ? tab.stressedText : tab.text }}</span>
       </button>
     </div>
   </nav>

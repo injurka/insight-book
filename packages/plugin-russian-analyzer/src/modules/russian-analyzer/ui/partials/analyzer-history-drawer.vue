@@ -55,7 +55,7 @@ function onSelectItem(item: AnalysisHistoryItem): void {
             <div class="hi-content">
               <div class="hi-top">
                 <span class="hi-cefr">{{ item.cefrLevel }}</span>
-                <span class="hi-text">{{ item.stressedText || item.plainText }}</span>
+                <span class="hi-text russian-phonetic-text">{{ item.stressedText || item.plainText }}</span>
               </div>
               <div class="hi-trans">
                 {{ item.translation }}

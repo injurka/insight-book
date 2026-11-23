@@ -165,7 +165,7 @@ function getClauseTokens(tokenIds: string[]): RussianLexemeToken[] {
             class="nested-word-chip"
             @click="selectToken(tok)"
           >
-            <span class="nw-word">{{ props.showStressMarks ? tok.stressedWord : tok.word }}</span>
+            <span class="nw-word russian-phonetic-text">{{ props.showStressMarks ? tok.stressedWord : tok.word }}</span>
             <span class="nw-mean">{{ tok.meaning }}</span>
           </button>
         </div>
@@ -180,10 +180,10 @@ function getClauseTokens(tokenIds: string[]): RussianLexemeToken[] {
             <span class="pos-pill">{{ props.selectedNode.token.posLabel }}</span>
             <span class="cefr-pill">{{ props.selectedNode.token.cefr }}</span>
           </div>
-          <div class="hero-word">
+          <div class="hero-word russian-phonetic-text">
             {{ props.showStressMarks ? props.selectedNode.token.stressedWord : props.selectedNode.token.word }}
           </div>
-          <div v-if="props.selectedNode.token.ipa" class="hero-ipa">
+          <div v-if="props.selectedNode.token.ipa" class="hero-ipa russian-phonetic-text">
             {{ props.selectedNode.token.ipa }}
           </div>
           <div class="hero-meaning">
@@ -309,7 +309,7 @@ function getClauseTokens(tokenIds: string[]): RussianLexemeToken[] {
             class="collocation-item"
           >
             <div class="col-main">
-              <span class="col-text">{{ props.showStressMarks ? col.stressedText : col.text }}</span>
+              <span class="col-text russian-phonetic-text">{{ props.showStressMarks ? col.stressedText : col.text }}</span>
               <span class="col-trans">— {{ col.translation }}</span>
             </div>
             <button
@@ -334,7 +334,7 @@ function getClauseTokens(tokenIds: string[]): RussianLexemeToken[] {
               {{ getMorphemeTypeBadge(props.selectedNode.morpheme.type) }}
             </span>
           </div>
-          <div class="hero-word">
+          <div class="hero-word russian-phonetic-text">
             {{ props.selectedNode.morpheme.text }}
           </div>
           <div class="hero-meaning">
@@ -386,10 +386,10 @@ function getClauseTokens(tokenIds: string[]): RussianLexemeToken[] {
     <div v-else-if="props.selectedNode.kind === 'feature'" class="inspector-body">
       <div class="hero-box comp-hero">
         <span class="type-kicker">{{ getFeatureTypeBadge(props.selectedNode.feature.type) }}</span>
-        <div class="hero-word">
+        <div class="hero-word russian-phonetic-text">
           {{ props.selectedNode.feature.symbol }}
         </div>
-        <div v-if="hasDistinctFeatureLabel(props.selectedNode.feature)" class="hero-ipa">
+        <div v-if="hasDistinctFeatureLabel(props.selectedNode.feature)" class="hero-ipa russian-phonetic-text">
           {{ props.selectedNode.feature.label }}
         </div>
         <div class="hero-meaning">
@@ -620,7 +620,6 @@ function getClauseTokens(tokenIds: string[]): RussianLexemeToken[] {
 }
 
 .hero-ipa {
-  font-family: monospace;
   font-size: 0.84rem;
   color: var(--fg-secondary-color);
 }

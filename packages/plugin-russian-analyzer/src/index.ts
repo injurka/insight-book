@@ -5,6 +5,7 @@ import { setLocalPluginApi } from './shared/lib/api'
 import en from './shared/locales/en'
 import ru from './shared/locales/ru'
 import zh from './shared/locales/zh'
+import './shared/styles/phonetic-text.scss'
 
 const plugin: InsightBookPlugin = {
   id: 'russian-analyzer',

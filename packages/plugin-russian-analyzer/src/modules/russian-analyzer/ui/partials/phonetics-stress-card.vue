@@ -118,7 +118,7 @@ const hasMultipleWordGroups = computed(() => wordCardGroups.value.length > 1)
               @click="emit('speak', card.word)"
             >
               <div class="wsc-top">
-                <span class="wsc-word">{{ props.showStressMarks ? card.stressedWord : card.word }}</span>
+                <span class="wsc-word russian-phonetic-text">{{ props.showStressMarks ? card.stressedWord : card.word }}</span>
                 <span v-if="card.isSentenceFocus" class="focus-dot-badge">ИК</span>
               </div>
 
@@ -141,7 +141,7 @@ const hasMultipleWordGroups = computed(() => wordCardGroups.value.length > 1)
                 </div>
               </div>
 
-              <span v-if="card.ipa" class="wsc-ipa">{{ card.ipa }}</span>
+              <span v-if="card.ipa" class="wsc-ipa russian-phonetic-text">{{ card.ipa }}</span>
               <span v-if="card.reductionNote" class="wsc-note" :title="card.reductionNote">
                 {{ card.reductionNote }}
               </span>
@@ -537,7 +537,6 @@ const hasMultipleWordGroups = computed(() => wordCardGroups.value.length > 1)
   }
 
   .wsc-ipa {
-    font-family: monospace;
     font-size: 0.7rem;
     color: var(--fg-secondary-color);
   }

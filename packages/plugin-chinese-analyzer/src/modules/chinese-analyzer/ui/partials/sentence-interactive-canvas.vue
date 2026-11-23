@@ -139,7 +139,12 @@ onMounted(() => {
 <template>
   <div v-if="viewport.isFullscreen.value" :style="{ height: `${inlineHeight}px` }" aria-hidden="true" />
   <Teleport to="body" :disabled="!viewport.isFullscreen.value">
-    <section ref="canvasShellRef" class="canvas-shell" :class="{ 'is-fullscreen': viewport.isFullscreen.value }">
+    <section
+      ref="canvasShellRef"
+      class="canvas-shell"
+      :aria-label="t('plugins.chinese-analyzer.canvasTitle')"
+      :class="{ 'is-fullscreen': viewport.isFullscreen.value }"
+    >
       <!-- Canvas Header & Controls Toolbar -->
       <header class="canvas-toolbar">
         <div class="toolbar-title-area">
@@ -161,6 +166,9 @@ onMounted(() => {
               type="button"
               class="segment-btn"
               :class="{ active: props.viewMode === 'hierarchy' }"
+              :aria-pressed="props.viewMode === 'hierarchy'"
+              :aria-label="t('plugins.chinese-analyzer.viewHierarchy')"
+              :title="t('plugins.chinese-analyzer.viewHierarchy')"
               @click="emit('update:viewMode', 'hierarchy')"
             >
               <Icon icon="mdi:sitemap-outline" />
@@ -170,6 +178,9 @@ onMounted(() => {
               type="button"
               class="segment-btn"
               :class="{ active: props.viewMode === 'linear' }"
+              :aria-pressed="props.viewMode === 'linear'"
+              :aria-label="t('plugins.chinese-analyzer.viewLinear')"
+              :title="t('plugins.chinese-analyzer.viewLinear')"
               @click="emit('update:viewMode', 'linear')"
             >
               <Icon icon="mdi:layers-triple-outline" />
@@ -180,7 +191,9 @@ onMounted(() => {
           <!-- Expand / Collapse All Layers -->
           <button
             type="button"
-            class="toolbar-btn"
+            class="toolbar-btn layers-toggle"
+            :aria-label="props.areAllTokensExpanded ? t('plugins.chinese-analyzer.collapseChars') : t('plugins.chinese-analyzer.expandAllChars')"
+            :title="props.areAllTokensExpanded ? t('plugins.chinese-analyzer.collapseChars') : t('plugins.chinese-analyzer.expandAllChars')"
             @click="emit('toggleExpandAll')"
           >
             <Icon :icon="props.areAllTokensExpanded ? 'mdi:unfold-less-horizontal' : 'mdi:unfold-more-horizontal'" />
@@ -195,6 +208,7 @@ onMounted(() => {
               type="button"
               class="zoom-btn"
               :title="t('plugins.chinese-analyzer.zoomOut')"
+              :aria-label="t('plugins.chinese-analyzer.zoomOut')"
               @click="viewport.zoomOut"
             >
               <Icon icon="mdi:minus" />
@@ -204,23 +218,26 @@ onMounted(() => {
               type="button"
               class="zoom-btn"
               :title="t('plugins.chinese-analyzer.zoomIn')"
+              :aria-label="t('plugins.chinese-analyzer.zoomIn')"
               @click="viewport.zoomIn"
             >
               <Icon icon="mdi:plus" />
             </button>
             <button
               type="button"
-              class="zoom-btn"
+              class="zoom-btn fit-btn"
               :title="t('plugins.chinese-analyzer.resetViewport')"
+              :aria-label="`${t('plugins.chinese-analyzer.resetViewport')} (${viewport.zoomPercentage.value})`"
               @click="fitStageToContainer"
             >
               <Icon icon="mdi:fit-to-screen-outline" />
+              <span class="compact-zoom-readout" aria-hidden="true">{{ viewport.zoomPercentage.value }}</span>
             </button>
           </div>
 
           <button
             type="button"
-            class="toolbar-btn icon-only"
+            class="toolbar-btn icon-only fullscreen-toggle"
             :title="fullscreenLabel"
             :aria-label="fullscreenLabel"
             @click="toggleFullscreen"
@@ -1618,4 +1635,5 @@ onMounted(() => {
     color: var(--fg-secondary-color);
   }
 }
+@include compact-canvas-fullscreen;
 </style>

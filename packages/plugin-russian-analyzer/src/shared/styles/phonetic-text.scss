@@ -1,0 +1,5 @@
+// The app's Cyrillic font subset omits the combining acute (U+0301).
+.russian-phonetic-text {
+  font-family: system-ui, sans-serif;
+  letter-spacing: normal;
+}

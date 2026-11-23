@@ -160,7 +160,7 @@ function onTokenClick(token: RussianLexemeToken): void {
               @click="onTokenClick(item.token)"
             >
               <span class="ruby-top-tag">{{ getTokenTopTag(item.token) }}</span>
-              <span class="ruby-word">
+              <span class="ruby-word russian-phonetic-text">
                 {{ props.showStressMarks ? item.token.stressedWord : item.token.word }}
               </span>
               <span class="ruby-gloss">{{ item.token.meaning }}</span>
@@ -175,7 +175,7 @@ function onTokenClick(token: RussianLexemeToken): void {
 
       <div v-if="props.sentence.ipa" class="ipa-footer-line">
         <span class="ipa-tag">IPA</span>
-        <span class="ipa-text">{{ props.sentence.ipa }}</span>
+        <span class="ipa-text russian-phonetic-text">{{ props.sentence.ipa }}</span>
       </div>
     </div>
 
@@ -629,7 +629,6 @@ function onTokenClick(token: RussianLexemeToken): void {
   }
 
   .ipa-text {
-    font-family: monospace;
     color: var(--fg-secondary-color);
     word-break: break-word;
   }

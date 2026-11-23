@@ -174,7 +174,12 @@ onMounted(() => {
 <template>
   <div v-if="viewport.isFullscreen.value" :style="{ height: `${inlineHeight}px` }" aria-hidden="true" />
   <Teleport to="body" :disabled="!viewport.isFullscreen.value">
-    <section ref="canvasShellRef" class="canvas-shell" :class="{ 'is-fullscreen': viewport.isFullscreen.value }">
+    <section
+      ref="canvasShellRef"
+      class="canvas-shell"
+      :aria-label="t('plugins.russian-analyzer.canvasTitle')"
+      :class="{ 'is-fullscreen': viewport.isFullscreen.value }"
+    >
       <!-- Canvas Header & Controls Toolbar -->
       <header class="canvas-toolbar">
         <div class="toolbar-title-area">
@@ -196,6 +201,9 @@ onMounted(() => {
               type="button"
               class="segment-btn"
               :class="{ active: props.viewMode === 'hierarchy' }"
+              :aria-pressed="props.viewMode === 'hierarchy'"
+              :aria-label="t('plugins.russian-analyzer.viewHierarchy')"
+              :title="t('plugins.russian-analyzer.viewHierarchy')"
               @click="emit('update:viewMode', 'hierarchy')"
             >
               <Icon icon="mdi:sitemap-outline" />
@@ -205,6 +213,9 @@ onMounted(() => {
               type="button"
               class="segment-btn"
               :class="{ active: props.viewMode === 'linear' }"
+              :aria-pressed="props.viewMode === 'linear'"
+              :aria-label="t('plugins.russian-analyzer.viewLinear')"
+              :title="t('plugins.russian-analyzer.viewLinear')"
               @click="emit('update:viewMode', 'linear')"
             >
               <Icon icon="mdi:layers-triple-outline" />
@@ -215,7 +226,9 @@ onMounted(() => {
           <!-- Expand / Collapse All Layers -->
           <button
             type="button"
-            class="toolbar-btn"
+            class="toolbar-btn layers-toggle"
+            :aria-label="props.areAllTokensExpanded ? t('plugins.russian-analyzer.collapseMorphemes') : t('plugins.russian-analyzer.expandAllMorphemes')"
+            :title="props.areAllTokensExpanded ? t('plugins.russian-analyzer.collapseMorphemes') : t('plugins.russian-analyzer.expandAllMorphemes')"
             @click="emit('toggleExpandAll')"
           >
             <Icon :icon="props.areAllTokensExpanded ? 'mdi:unfold-less-horizontal' : 'mdi:unfold-more-horizontal'" />
@@ -230,6 +243,7 @@ onMounted(() => {
               type="button"
               class="zoom-btn"
               :title="t('plugins.russian-analyzer.zoomOut')"
+              :aria-label="t('plugins.russian-analyzer.zoomOut')"
               @click="viewport.zoomOut"
             >
               <Icon icon="mdi:minus" />
@@ -239,23 +253,26 @@ onMounted(() => {
               type="button"
               class="zoom-btn"
               :title="t('plugins.russian-analyzer.zoomIn')"
+              :aria-label="t('plugins.russian-analyzer.zoomIn')"
               @click="viewport.zoomIn"
             >
               <Icon icon="mdi:plus" />
             </button>
             <button
               type="button"
-              class="zoom-btn"
+              class="zoom-btn fit-btn"
               :title="t('plugins.russian-analyzer.resetViewport')"
+              :aria-label="`${t('plugins.russian-analyzer.resetViewport')} (${viewport.zoomPercentage.value})`"
               @click="fitStageToContainer"
             >
               <Icon icon="mdi:fit-to-screen-outline" />
+              <span class="compact-zoom-readout" aria-hidden="true">{{ viewport.zoomPercentage.value }}</span>
             </button>
           </div>
 
           <button
             type="button"
-            class="toolbar-btn icon-only"
+            class="toolbar-btn icon-only fullscreen-toggle"
             :title="fullscreenLabel"
             :aria-label="fullscreenLabel"
             @click="toggleFullscreen"
@@ -404,10 +421,10 @@ onMounted(() => {
             </div>
 
             <div class="token-main-word">
-              <span class="token-word">
+              <span class="token-word russian-phonetic-text">
                 {{ props.showStressMarks ? tNode.token.stressedWord : tNode.token.word }}
               </span>
-              <span v-if="tNode.token.lemma && tNode.token.lemma.toLowerCase() !== tNode.token.word.toLowerCase()" class="token-lemma">
+              <span v-if="tNode.token.lemma && tNode.token.lemma.toLowerCase() !== tNode.token.word.toLowerCase()" class="token-lemma russian-phonetic-text">
                 ← {{ tNode.token.lemma }}
               </span>
             </div>
@@ -515,7 +532,7 @@ onMounted(() => {
                   <span class="lw-role">{{ getTokenBadgeText(token) }}</span>
                 </div>
                 <div class="lw-center">
-                  <span class="lw-word">{{ props.showStressMarks ? token.stressedWord : token.word }}</span>
+                  <span class="lw-word russian-phonetic-text">{{ props.showStressMarks ? token.stressedWord : token.word }}</span>
                   <span v-if="token.lemma && token.lemma.toLowerCase() !== token.word.toLowerCase()" class="lw-lemma">
                     ← {{ token.lemma }}
                   </span>
@@ -580,10 +597,16 @@ onMounted(() => {
 
   &.is-fullscreen {
     position: fixed;
-    inset: 12px;
+    inset: 0 0 auto;
+    height: 100%;
+    height: 100dvh;
     z-index: 1200;
-    border-radius: 20px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+    box-sizing: border-box;
+    padding: var(--safe-area-top, env(safe-area-inset-top, 0px)) env(safe-area-inset-right, 0px)
+      var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 0px);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   @include media-down(sm) {
@@ -593,6 +616,7 @@ onMounted(() => {
 }
 
 .canvas-toolbar {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -779,6 +803,7 @@ onMounted(() => {
 }
 
 .canvas-legend-strip {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1378,6 +1403,13 @@ onMounted(() => {
   padding: 20px;
   background: var(--bg-primary-color);
 
+  .is-fullscreen & {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   @include media-down(sm) {
     padding: 10px;
     gap: 10px;
@@ -1622,4 +1654,5 @@ onMounted(() => {
     color: var(--fg-secondary-color);
   }
 }
+@include compact-canvas-fullscreen;
 </style>
