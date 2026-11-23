@@ -142,6 +142,7 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
     "intonationNote": "Practical pronunciation advice in ${targetLangName} (linking prepositions, stress centers, cadence)",
     "phoneticRules": [
       {
+        "sentenceIndex": 0,
         "title": "Rule title in ${targetLangName} (e.g. Vowel reduction Аканье, Final devoicing, -ться → [ца])",
         "written": "Written spelling (e.g. 'сего́дня')",
         "spoken": "Actual pronunciation (e.g. '[с’иво́дн’а]')",
@@ -168,6 +169,7 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
   },
   "grammarPatterns": [
     {
+      "sentenceIndex": 0,
       "id": "g1",
       "name": "Grammar pattern title in ${targetLangName} (e.g. Case government, Verb aspect СВ vs НСВ, Reflexive -ся)",
       "formula": "Structural formula with case/aspect markers",
@@ -189,6 +191,7 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
   },
   "alternatives": [
     {
+      "sentenceIndex": 0,
       "text": "Alternative Russian sentence (plain)",
       "stressedText": "Alternative Russian sentence with stress marks",
       "ipa": "Broad IPA",
@@ -203,7 +206,9 @@ CRITICAL QUALITY RULES:
 - Every content word (noun, verb, adjective, pronoun, participle, adverb) in "tokens" MUST be decomposed into authentic Russian "morphemes" (prefix / root / suffix / ending / postfix), and key morphemes MUST have 1-2 "features" (e.g. grammatical inflection meaning for endings, aspect shift for prefixes, or 1-2 Russian cognate words for roots).
 - Include accurate combining acute stress marks (U+0301) in "stressedText" and "stressedWord" on all multi-syllable words (never mark stress on "ё" since "ё" is inherently stressed).
 - Include 2-4 "grammarPatterns" focusing on Russian cases, verb aspect, prepositions, or word order.
-- Include 3-4 "alternatives" covering casual (ты), polite (вы), formal/literary, and simpler registers.`
+- Include 3-4 "alternatives" covering casual (ты), polite (вы), formal/literary, and simpler registers.
+- "wordStressCards" MUST contain exactly one card per item of "tokens", in the same order.
+- MULTI-SENTENCE INPUT: when the text contains several sentences, number them 0, 1, 2... in reading order (the index increments after each sentence-ending punctuation mark). Every token MUST carry its "sentenceIndex". Every item of "grammarPatterns", "alternatives" and "phonetics.phoneticRules" MUST carry the "sentenceIndex" of the sentence it relates to (an alternative rewrites exactly that sentence). Omit "sentenceIndex" on an item only if it genuinely applies to the whole text. Cover every sentence in "grammarPatterns" and "alternatives".`
 }
 
 export function buildRussianAnalyzerUserPrompt(input: string): string {
@@ -235,6 +240,16 @@ function asString(val: unknown, fallback = ''): string {
 
 function asArray(val: unknown): unknown[] {
   return Array.isArray(val) ? val : []
+}
+
+function asOptionalSentenceIndex(value: unknown): number | undefined {
+  if (value === null || value === undefined || value === '') {
+    return undefined
+  }
+
+  const raw = Number(value)
+
+  return Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : undefined
 }
 
 function normalizePos(val: unknown): RussianPosCode {
@@ -350,8 +365,6 @@ function normalizeToken(raw: unknown, idx: number): RussianLexemeToken {
   const rawWord = asString(obj.word, asString(obj.stressedWord, '?'))
   const word = stripStressMarks(rawWord)
   const stressedWord = asString(obj.stressedWord, rawWord)
-  const rawSentIdx = Number(obj.sentenceIndex)
-  const sentenceIndex = Number.isFinite(rawSentIdx) && rawSentIdx >= 0 ? Math.floor(rawSentIdx) : undefined
 
   return {
     id: asString(obj.id, `t${idx + 1}`),
@@ -359,7 +372,7 @@ function normalizeToken(raw: unknown, idx: number): RussianLexemeToken {
     stressedWord,
     lemma: asString(obj.lemma, word),
     ipa: asString(obj.ipa, ''),
-    sentenceIndex,
+    sentenceIndex: asOptionalSentenceIndex(obj.sentenceIndex),
     trailingPunctuation: asString(obj.trailingPunctuation, ''),
     pos: normalizePos(obj.pos),
     posLabel: asString(obj.posLabel, 'Word'),
@@ -397,12 +410,6 @@ function normalizeDependency(raw: unknown, idx: number): DependencyArc {
     toTokenId: asString(obj.toTokenId),
     relationLabel: asString(obj.relationLabel, ''),
   }
-}
-
-function asOptionalSentenceIndex(value: unknown): number | undefined {
-  const raw = Number(value)
-
-  return Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : undefined
 }
 
 function normalizePhoneticRule(raw: unknown): PhoneticRuleItem {
