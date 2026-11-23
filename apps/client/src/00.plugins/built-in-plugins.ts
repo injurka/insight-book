@@ -34,6 +34,12 @@ export const builtInPlugins: readonly BuiltInPlugin[] = [
     load: () => import('@injurka/insight-book-plugin-chinese-analyzer'),
     defaultEnabled: ({ appLanguage }) => appLanguage !== 'zh',
   },
+  {
+    id: 'russian-analyzer',
+    icon: 'mdi:alphabet-cyrillic',
+    load: () => import('@injurka/insight-book-plugin-russian-analyzer'),
+    defaultEnabled: ({ appLanguage }) => appLanguage !== 'ru',
+  },
 ]
 
 export function isBuiltInPluginEnabled(plugin: BuiltInPlugin, settings: BuiltInPluginSettings): boolean {

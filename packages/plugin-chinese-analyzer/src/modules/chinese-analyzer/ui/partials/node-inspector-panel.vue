@@ -99,6 +99,14 @@ function getComponentTypeBadge(type: ComponentNode['type']): string {
   return t('plugins.chinese-analyzer.componentRadical')
 }
 
+function hasDistinctComponentName(component: ComponentNode): boolean {
+  const normalize = (value: string) => value.trim().toLowerCase().replace(/ё/g, 'е')
+  const name = normalize(component.name)
+  const meaning = normalize(component.meaning)
+
+  return Boolean(name) && name !== meaning
+}
+
 function selectToken(token: LexemeToken): void {
   emit('selectNode', { kind: 'token', token })
 }
@@ -394,8 +402,8 @@ onMounted(() => {
             </div>
             <div class="rd-info">
               <span class="rd-type">{{ getComponentTypeBadge(comp.type) }}</span>
-              <span class="rd-name">{{ comp.name }}</span>
-              <span class="rd-meaning">{{ comp.meaning }}</span>
+              <span v-if="hasDistinctComponentName(comp)" class="rd-name">{{ comp.name }}</span>
+              <span class="rd-meaning">{{ comp.meaning || comp.name }}</span>
             </div>
           </div>
         </div>
@@ -409,11 +417,11 @@ onMounted(() => {
         <div class="hero-hanzi">
           {{ props.selectedNode.component.symbol }}
         </div>
-        <div class="hero-pinyin">
+        <div v-if="hasDistinctComponentName(props.selectedNode.component)" class="hero-pinyin">
           {{ props.selectedNode.component.name }}
         </div>
         <div class="hero-meaning">
-          {{ props.selectedNode.component.meaning }}
+          {{ props.selectedNode.component.meaning || props.selectedNode.component.name }}
         </div>
       </div>
 

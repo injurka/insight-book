@@ -423,6 +423,10 @@
     "chinese-analyzer": {
       "name": "汉语句子深度解析",
       "description": "交互式画布上的 AI 汉语句子全景拆解：词素、汉字、偏旁部首、语法结构与声调走势。"
+    },
+    "russian-analyzer": {
+      "name": "俄语句子深度解析",
+      "description": "交互式画布上的 AI 俄语句子全景拆解：六格支配、动词体、构词词素、重音弱化与调型 (ИК)。"
     }
   },
   "library": {

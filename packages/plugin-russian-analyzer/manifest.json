@@ -1,0 +1,9 @@
+{
+  "id": "russian-analyzer",
+  "name": "Russian Sentence Analyzer",
+  "version": "1.0.0",
+  "description": "Comprehensive AI Russian sentence breakdown on an interactive canvas: clauses, cases, aspects, morphemes, stress, intonation, and pragmatics.",
+  "icon": "mdi:alphabet-cyrillic",
+  "source": "https://github.com/injurka/insight-book/tree/master/packages/plugin-russian-analyzer",
+  "entryUrl": "./remoteEntry.js"
+}

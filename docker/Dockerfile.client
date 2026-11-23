@@ -13,6 +13,7 @@ COPY apps/client/package.json ./apps/client/
 
 COPY packages/plugin-api/package.json ./packages/plugin-api/
 COPY packages/plugin-chinese-analyzer/package.json ./packages/plugin-chinese-analyzer/
+COPY packages/plugin-russian-analyzer/package.json ./packages/plugin-russian-analyzer/
 COPY packages/plugin-grammar-rules/package.json ./packages/plugin-grammar-rules/
 COPY packages/plugin-dialogue-trainer/package.json ./packages/plugin-dialogue-trainer/
 COPY packages/language-utils/package.json ./packages/language-utils/

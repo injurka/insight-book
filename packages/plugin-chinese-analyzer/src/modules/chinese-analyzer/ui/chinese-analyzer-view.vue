@@ -15,6 +15,7 @@ import NodeInspectorPanel from './partials/node-inspector-panel.vue'
 import PhoneticsToneFlowCard from './partials/phonetics-tone-flow-card.vue'
 import SentenceInteractiveCanvas from './partials/sentence-interactive-canvas.vue'
 import SentenceOverviewCard from './partials/sentence-overview-card.vue'
+import SentenceSwitcher from './partials/sentence-switcher.vue'
 import UsagePragmaticsCard from './partials/usage-pragmatics-card.vue'
 
 const { t } = useI18n()
@@ -24,7 +25,7 @@ const analyzer = useSentenceAnalyzer()
 const tts = useAnalyzerTts()
 const page = useTemplateRef<HTMLElement>('pageRef')
 
-const { currentAnalysis } = analyzer
+const { currentAnalysis, viewAnalysis } = analyzer
 const isHistoryOpen = ref(false)
 
 function onSelectTokenFromOverview(token: LexemeToken): void {
@@ -114,11 +115,19 @@ onUnmounted(() => {
     </div>
 
     <!-- Main Analysis Content -->
-    <div v-if="currentAnalysis" class="analysis-content" :class="{ 'is-loading': analyzer.isAnalyzing.value }">
+    <div v-if="viewAnalysis" class="analysis-content" :class="{ 'is-loading': analyzer.isAnalyzing.value }">
+      <!-- 0. Sentence Switcher (only for multi-sentence input) -->
+      <SentenceSwitcher
+        v-if="analyzer.sentenceTabs.value.length > 0"
+        :model-value="analyzer.activeSentenceIndex.value"
+        :tabs="analyzer.sentenceTabs.value"
+        @update:model-value="analyzer.focusSentence"
+      />
+
       <!-- 1. Sentence Overview & Ruby Ribbon -->
       <SentenceOverviewCard
-        :sentence="currentAnalysis.sentence"
-        :tokens="currentAnalysis.tokens"
+        :sentence="viewAnalysis.sentence"
+        :tokens="viewAnalysis.tokens"
         :selected-node="analyzer.selectedNode.value"
         :is-playing-audio="tts.isPlaying.value"
         @select-token="onSelectTokenFromOverview"
@@ -130,7 +139,7 @@ onUnmounted(() => {
         <div class="canvas-col">
           <SentenceInteractiveCanvas
             v-model:view-mode="analyzer.canvasViewMode.value"
-            :analysis="currentAnalysis"
+            :analysis="viewAnalysis"
             :selected-node="analyzer.selectedNode.value"
             :expanded-token-ids="analyzer.expandedTokenIds.value"
             :are-all-tokens-expanded="analyzer.areAllTokensExpanded.value"
@@ -144,7 +153,7 @@ onUnmounted(() => {
         <div class="inspector-col">
           <NodeInspectorPanel
             :selected-node="analyzer.selectedNode.value"
-            :all-tokens="currentAnalysis.tokens"
+            :all-tokens="viewAnalysis.tokens"
             @select-node="analyzer.selectNode"
             @speak="tts.speakChinese"
             @analyze-query="analyzeAndScroll"
@@ -155,16 +164,16 @@ onUnmounted(() => {
       <!-- 3. Phonetics, Rhythm & Visual Pitch Contour -->
       <PhoneticsToneFlowCard
         class="analysis-section-divider"
-        :phonetics="currentAnalysis.phonetics"
-        :hanzi="currentAnalysis.sentence.hanzi"
+        :phonetics="viewAnalysis.phonetics"
+        :hanzi="viewAnalysis.sentence.hanzi"
         @speak="tts.speakChinese"
       />
 
       <!-- 4. Grammar Patterns & Constructions -->
       <GrammarPatternsSection
-        v-if="currentAnalysis.grammarPatterns.length > 0"
+        v-if="viewAnalysis.grammarPatterns.length > 0"
         class="analysis-section-divider"
-        :patterns="currentAnalysis.grammarPatterns"
+        :patterns="viewAnalysis.grammarPatterns"
         @speak="tts.speakChinese"
         @analyze-query="analyzeAndScroll"
       />
@@ -172,13 +181,13 @@ onUnmounted(() => {
       <!-- 5. Pragmatics & Usage Context + 6. Alternatives -->
       <UsagePragmaticsCard
         class="analysis-section-divider"
-        :usage-context="currentAnalysis.usageContext"
+        :usage-context="viewAnalysis.usageContext"
       />
 
       <AlternativesSection
-        v-if="currentAnalysis.alternatives.length > 0"
+        v-if="viewAnalysis.alternatives.length > 0"
         class="analysis-section-divider"
-        :alternatives="currentAnalysis.alternatives"
+        :alternatives="viewAnalysis.alternatives"
         @speak="tts.speakChinese"
         @analyze-variant="analyzeAndScroll"
       />

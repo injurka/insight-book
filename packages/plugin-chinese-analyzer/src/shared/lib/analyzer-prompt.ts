@@ -85,8 +85,8 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
           "components": [
             {
               "symbol": "Radical or component char (e.g. 氵, 心, 青)",
-              "name": "Component name and pinyin",
-              "meaning": "Meaning or phonetic value of this component",
+              "name": "Pinyin or traditional radical name (e.g. 'shuǐ / три капли воды', 'rén', 'qīng') — do NOT duplicate 'meaning'",
+              "meaning": "Concise semantic meaning or phonetic value in ${targetLangName} (e.g. 'вода', 'человек', 'фонетик qīng')",
               "type": "semantic" | "phonetic" | "radical"
             }
           ]
@@ -107,6 +107,7 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
     "intonationNote": "Advice on overall sentence intonation, stress, and emotional cadence",
     "sandhiRules": [
       {
+        "sentenceIndex": 0,
         "title": "Rule name (e.g. Сандхи третьего тона 3+3 → 2+3, Изменение тона 不/一)",
         "before": "Base pinyin",
         "after": "Spoken pinyin",
@@ -126,6 +127,7 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
   },
   "grammarPatterns": [
     {
+      "sentenceIndex": 0,
       "id": "g1",
       "name": "Pattern title (e.g. Конструкция 对...感兴趣)",
       "formula": "A + 对 + B + 感兴趣",
@@ -147,6 +149,7 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
   },
   "alternatives": [
     {
+      "sentenceIndex": 0,
       "hanzi": "Alternative Chinese sentence",
       "pinyin": "Pinyin with tones",
       "translation": "Translation",
@@ -160,7 +163,8 @@ CRITICAL QUALITY RULES:
 - Every multi-character word in "tokens" MUST have ALL of its constituent characters broken down in "characters", and each character MUST have 1 to 3 "components" (radicals/semantic/phonetic parts).
 - Even single-character words in "tokens" MUST have that character in "characters" with its radical/component decomposition.
 - Include at least 3-4 "alternatives" across different registers (casual, formal/literary, simpler, more expressive).
-- Include 2-4 "grammarPatterns" covering the key constructions and word order rules of the sentence.`
+- Include 2-4 "grammarPatterns" covering the key constructions and word order rules of the sentence.
+- MULTI-SENTENCE INPUT: when the text contains several sentences, number them 0, 1, 2... in reading order (the index increments after each sentence-ending punctuation mark). Every token MUST carry its "sentenceIndex". Every item of "grammarPatterns", "alternatives" and "phonetics.sandhiRules" MUST carry the "sentenceIndex" of the sentence it relates to (an alternative rewrites exactly that sentence). Omit "sentenceIndex" on an item only if it genuinely applies to the whole text. Cover every sentence in "grammarPatterns" and "alternatives".`
 }
 
 export function buildAnalyzerUserPrompt(input: string): string {
@@ -187,6 +191,16 @@ function asString(val: unknown, fallback = ''): string {
 
 function asArray(val: unknown): unknown[] {
   return Array.isArray(val) ? val : []
+}
+
+function asSentenceIndex(val: unknown): number | undefined {
+  if (val === null || val === undefined || val === '') {
+    return undefined
+  }
+
+  const num = Number(val)
+
+  return Number.isFinite(num) && num >= 0 ? Math.floor(num) : undefined
 }
 
 function normalizeComponentType(val: unknown): ComponentRoleType {
@@ -276,10 +290,6 @@ function normalizeToken(raw: unknown, idx: number): LexemeToken {
   const characters = ensureTokenCharacters(hanzi, pinyin, asArray(obj.characters))
   const rawTones = asArray(obj.tones).map(t => normalizeToneNumber(t))
   const tones = rawTones.length > 0 ? rawTones : characters.map(c => c.tone)
-  const rawSentenceIndex = Number(obj.sentenceIndex)
-  const sentenceIndex = Number.isFinite(rawSentenceIndex) && rawSentenceIndex >= 0
-    ? Math.floor(rawSentenceIndex)
-    : undefined
 
   return {
     id: asString(obj.id, `t${idx + 1}`),
@@ -287,7 +297,7 @@ function normalizeToken(raw: unknown, idx: number): LexemeToken {
     pinyin,
     tones,
     toneSandhiNote: asString(obj.toneSandhiNote, ''),
-    sentenceIndex,
+    sentenceIndex: asSentenceIndex(obj.sentenceIndex),
     trailingPunctuation: asString(obj.trailingPunctuation, ''),
     pos: normalizePos(obj.pos),
     posLabel: asString(obj.posLabel, 'Лексема'),
@@ -329,6 +339,7 @@ function normalizeSandhiRule(raw: unknown): ToneSandhiRuleItem {
   const obj = asRecord(raw)
 
   return {
+    sentenceIndex: asSentenceIndex(obj.sentenceIndex),
     title: asString(obj.title),
     before: asString(obj.before),
     after: asString(obj.after),
@@ -387,6 +398,7 @@ function normalizeGrammarPattern(raw: unknown, idx: number): GrammarPatternItem 
   const obj = asRecord(raw)
 
   return {
+    sentenceIndex: asSentenceIndex(obj.sentenceIndex),
     id: asString(obj.id, `g${idx + 1}`),
     name: asString(obj.name, `Грамматическая конструкция ${idx + 1}`),
     formula: asString(obj.formula, ''),
@@ -416,6 +428,7 @@ function normalizeAlternative(raw: unknown): AlternativeVariant {
   const obj = asRecord(raw)
 
   return {
+    sentenceIndex: asSentenceIndex(obj.sentenceIndex),
     hanzi: asString(obj.hanzi),
     pinyin: asString(obj.pinyin),
     translation: asString(obj.translation),

@@ -26,6 +26,8 @@ export default {
   listenSentence: 'Listen to sentence',
   copySentence: 'Copy',
   copied: 'Copied',
+  sentenceAll: 'All',
+  sentenceSwitcherLabel: 'Sentences',
   literalTranslation: 'Word-for-word gloss',
   naturalTranslation: 'Natural translation',
   structuralFormula: 'Structural formula',

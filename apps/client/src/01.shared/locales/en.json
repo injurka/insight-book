@@ -424,6 +424,10 @@
     "chinese-analyzer": {
       "name": "Chinese Sentence Analyzer",
       "description": "Comprehensive AI sentence breakdown on an interactive canvas: lexemes, characters, radicals, grammar, and tones."
+    },
+    "russian-analyzer": {
+      "name": "Russian Sentence Analyzer",
+      "description": "Comprehensive AI Russian sentence breakdown on an interactive canvas: cases, verb aspect, morphemes, stress rhythm, and intonation (IK)."
     }
   },
   "library": {

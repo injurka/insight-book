@@ -76,6 +76,8 @@ export interface DependencyArc {
 }
 
 export interface ToneSandhiRuleItem {
+  /** Предложение, к которому относится правило. `undefined` — относится ко всему тексту. */
+  sentenceIndex?: number
   title: string
   before: string
   after: string
@@ -99,6 +101,8 @@ export interface PhoneticsAnalysis {
 }
 
 export interface GrammarPatternItem {
+  /** Предложение, к которому относится конструкция. `undefined` — относится ко всему тексту. */
+  sentenceIndex?: number
   id: string
   name: string
   formula: string
@@ -118,6 +122,8 @@ export interface UsageContextInfo {
 }
 
 export interface AlternativeVariant {
+  /** Предложение, для которого сделан вариант. `undefined` — относится ко всему тексту. */
+  sentenceIndex?: number
   hanzi: string
   pinyin: string
   translation: string

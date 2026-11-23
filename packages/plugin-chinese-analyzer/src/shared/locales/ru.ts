@@ -26,6 +26,8 @@ export default {
   listenSentence: 'Озвучить предложение',
   copySentence: 'Копировать',
   copied: 'Скопировано',
+  sentenceAll: 'Все',
+  sentenceSwitcherLabel: 'Предложения',
   literalTranslation: 'Дословный глоссарий',
   naturalTranslation: 'Литературный перевод',
   structuralFormula: 'Структурная формула',

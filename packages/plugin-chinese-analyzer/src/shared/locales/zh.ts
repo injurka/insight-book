@@ -26,6 +26,8 @@ export default {
   listenSentence: '朗读整句',
   copySentence: '复制',
   copied: '已复制',
+  sentenceAll: '全部',
+  sentenceSwitcherLabel: '句子',
   literalTranslation: '逐词直译',
   naturalTranslation: '自然意译',
   structuralFormula: '句法结构公式',

@@ -112,6 +112,9 @@ function getComponentTypeLabel(type: ComponentNode['type']): string {
 
   return t('plugins.chinese-analyzer.componentRadical')
 }
+function getComponentLabel(component: ComponentNode): string {
+  return component.meaning.trim() || component.name.trim()
+}
 function onSelectClause(clause: SyntacticClause): void {
   emit('selectNode', { kind: 'clause', clause })
 }
@@ -434,11 +437,10 @@ onMounted(() => {
             <span class="comp-role-badge">
               {{ getComponentTypeLabel(compNode.component.type) }}
             </span>
-            <div class="comp-main-row">
-              <span class="comp-symbol">{{ compNode.component.symbol }}</span>
-              <span class="comp-name">{{ compNode.component.name }}</span>
-            </div>
-            <span class="comp-meaning">{{ compNode.component.meaning }}</span>
+            <span class="comp-symbol">{{ compNode.component.symbol }}</span>
+            <span class="comp-meaning" :title="getComponentLabel(compNode.component)">
+              {{ getComponentLabel(compNode.component) }}
+            </span>
           </div>
         </div>
       </div>
@@ -1323,36 +1325,26 @@ onMounted(() => {
   }
 
   .comp-role-badge {
-    font-size: 0.58rem;
+    width: 100%;
+    font-size: 0.56rem;
     font-weight: 700;
+    line-height: 1.15;
+    text-align: center;
     text-transform: uppercase;
     color: var(--fg-tertiary-color);
   }
 
-  .comp-main-row {
-    display: flex;
-    align-items: baseline;
-    gap: 5px;
-  }
-
   .comp-symbol {
-    font-size: 1.15rem;
+    font-size: 1.35rem;
     font-weight: 800;
+    line-height: 1.1;
     color: var(--fg-primary-color);
-  }
-
-  .comp-name {
-    font-size: 0.62rem;
-    color: var(--fg-secondary-color);
-    max-width: 52px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .comp-meaning {
     width: 100%;
-    font-size: 0.62rem;
+    font-size: 0.64rem;
+    font-weight: 500;
     color: var(--fg-secondary-color);
     text-align: center;
     white-space: nowrap;

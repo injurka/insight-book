@@ -37,6 +37,7 @@ export default defineConfig({
       '@injurka/insight-book-plugin-grammar-rules': fileURLToPath(new URL('../../../packages/plugin-grammar-rules/src', import.meta.url)),
       '@injurka/insight-book-plugin-dialogue-trainer': fileURLToPath(new URL('../../../packages/plugin-dialogue-trainer/src', import.meta.url)),
       '@injurka/insight-book-plugin-chinese-analyzer': fileURLToPath(new URL('../../../packages/plugin-chinese-analyzer/src', import.meta.url)),
+      '@injurka/insight-book-plugin-russian-analyzer': fileURLToPath(new URL('../../../packages/plugin-russian-analyzer/src', import.meta.url)),
       '@': fileURLToPath(new URL('../../../packages/plugin-dialogue-trainer/src', import.meta.url)),
     },
   },
@@ -147,6 +148,9 @@ export default defineConfig({
 
           if (id.includes('plugin-chinese-analyzer'))
             return 'plugin-chinese-analyzer'
+
+          if (id.includes('plugin-russian-analyzer'))
+            return 'plugin-russian-analyzer'
         },
       },
     },

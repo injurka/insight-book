@@ -13,6 +13,7 @@ import {
   normalizeAnalysisResponse,
 } from '../../../shared/lib/analyzer-prompt'
 import { requestLlmGenerate } from '../../../shared/lib/api'
+import { getSentenceTabs, sliceAnalysisBySentence } from '../../../shared/lib/sentence-view'
 import { detectInputLanguage } from '../../../shared/lib/tone-utils'
 import { useAnalyzerHistory } from './use-analyzer-history'
 
@@ -38,18 +39,39 @@ export function useSentenceAnalyzer() {
   const selectedNode = ref<CanvasSelectedNode | null>(null)
   const expandedTokenIds = ref<string[]>([])
   const canvasViewMode = ref<CanvasViewMode>('hierarchy')
+  /** Ключ выбранного предложения; `null` — показывать разбор целиком. */
+  const activeSentenceIndex = ref<number | null>(null)
 
   const detectedLanguage = computed(() => detectInputLanguage(queryInput.value))
-  const areAllTokensExpanded = computed(() => {
-    const tokens = currentAnalysis.value?.tokens ?? []
+  const sentenceTabs = computed(() => currentAnalysis.value ? getSentenceTabs(currentAnalysis.value) : [])
+  /** Разбор, который отображается на странице: целиком или срез по активному предложению. */
+  const viewAnalysis = computed<ChineseSentenceAnalysis | null>(() => {
+    const analysis = currentAnalysis.value
+    const index = activeSentenceIndex.value
 
-    return tokens.length > 0 && expandedTokenIds.value.length >= tokens.length
+    return analysis && index !== null ? sliceAnalysisBySentence(analysis, index) : analysis
+  })
+  const viewTokenIds = computed(() => getAllTokenIds(viewAnalysis.value?.tokens ?? []))
+  const areAllTokensExpanded = computed(() => {
+    const ids = viewTokenIds.value
+
+    return ids.length > 0 && ids.every(id => expandedTokenIds.value.includes(id))
   })
 
   function applyAnalysisResult(analysis: ChineseSentenceAnalysis): void {
+    activeSentenceIndex.value = null
     currentAnalysis.value = analysis
     expandedTokenIds.value = getAllTokenIds(analysis.tokens)
     selectedNode.value = getInitialSelectedNode(analysis)
+  }
+
+  function focusSentence(index: number | null): void {
+    if (index !== null && !sentenceTabs.value.some(tab => tab.index === index)) {
+      return
+    }
+
+    activeSentenceIndex.value = index
+    selectedNode.value = viewAnalysis.value ? getInitialSelectedNode(viewAnalysis.value) : null
   }
 
   function selectNode(node: CanvasSelectedNode): void {
@@ -66,14 +88,13 @@ export function useSentenceAnalyzer() {
   }
 
   function toggleExpandAllTokens(): void {
-    if (!currentAnalysis.value)
-      return
+    const viewIds = viewTokenIds.value
 
     if (areAllTokensExpanded.value) {
-      expandedTokenIds.value = []
+      expandedTokenIds.value = expandedTokenIds.value.filter(id => !viewIds.includes(id))
     }
     else {
-      expandedTokenIds.value = getAllTokenIds(currentAnalysis.value.tokens)
+      expandedTokenIds.value = Array.from(new Set([...expandedTokenIds.value, ...viewIds]))
     }
   }
 
@@ -166,6 +187,9 @@ export function useSentenceAnalyzer() {
     isAnalyzing,
     errorMessage,
     currentAnalysis,
+    viewAnalysis,
+    sentenceTabs,
+    activeSentenceIndex,
     selectedNode,
     expandedTokenIds,
     areAllTokensExpanded,
@@ -173,6 +197,7 @@ export function useSentenceAnalyzer() {
     detectedLanguage,
     history,
     selectNode,
+    focusSentence,
     toggleTokenExpand,
     toggleExpandAllTokens,
     loadFromHistory,
