@@ -1,76 +1,12 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { pluginManager } from '~/00.plugins/plugin-manager'
+import { builtInPlugins, isBuiltInPluginEnabled } from '~/00.plugins/built-in-plugins'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
-const router = useRouter()
-
-const availableStaticPlugins = computed(() => [
-  {
-    id: 'grammar-rules',
-    name: t('plugins.grammar-rules.name', 'Грамматические правила'),
-    description: t('plugins.grammar-rules.description', 'Изучение и проверка правил грамматики'),
-    icon: 'mdi:school-outline',
-  },
-  {
-    id: 'dialogue-trainer',
-    name: t('plugins.dialogue-trainer.name', 'Тренажер диалогов'),
-    description: t('plugins.dialogue-trainer.description', 'Интерактивные голосовые диалоги с разбором ошибок'),
-    icon: 'mdi:account-voice',
-  },
-  {
-    id: 'chinese-analyzer',
-    name: t('plugins.chinese-analyzer.name', 'Разбор китайских предложений'),
-    description: t('plugins.chinese-analyzer.description', 'Интерактивное полотно разбора китайских предложений: лексемы, иероглифы, ключи, грамматика и тоны'),
-    icon: 'mdi:ideogram-cjk-variant',
-  },
-])
-
-async function toggleStaticPlugin(pluginId: string, enabled: boolean) {
-  if (enabled) {
-    if (!settingsStore.enabledPlugins.includes(pluginId)) {
-      settingsStore.enabledPlugins.push(pluginId)
-
-      if (pluginId === 'grammar-rules') {
-        try {
-          const { default: grammarRulesPlugin } = await import('@injurka/insight-book-plugin-grammar-rules')
-          await pluginManager.install(null, router, [grammarRulesPlugin])
-        }
-        catch (e) {
-          console.error('Failed to load plugin', e)
-        }
-      }
-      else if (pluginId === 'dialogue-trainer') {
-        try {
-          const { default: dialogueTrainerPlugin } = await import('@injurka/insight-book-plugin-dialogue-trainer')
-          await pluginManager.install(null, router, [dialogueTrainerPlugin])
-        }
-        catch (e) {
-          console.error('Failed to load plugin', e)
-        }
-      }
-      else if (pluginId === 'chinese-analyzer') {
-        try {
-          const { default: chineseAnalyzerPlugin } = await import('@injurka/insight-book-plugin-chinese-analyzer')
-          await pluginManager.install(null, router, [chineseAnalyzerPlugin])
-        }
-        catch (e) {
-          console.error('Failed to load plugin', e)
-        }
-      }
-    }
-  }
-  else {
-    settingsStore.enabledPlugins = settingsStore.enabledPlugins.filter(id => id !== pluginId)
-    await pluginManager.uninstall(pluginId, router)
-  }
-}
 </script>
 
 <template>
@@ -79,18 +15,18 @@ async function toggleStaticPlugin(pluginId: string, enabled: boolean) {
       {{ t('settings.staticPlugins', 'Встроенные модули') }}
     </h3>
     <div class="plugins-list">
-      <div v-for="plugin in availableStaticPlugins" :key="plugin.id" class="plugin-card">
+      <div v-for="plugin in builtInPlugins" :key="plugin.id" class="plugin-card">
         <div class="plugin-icon">
           <Icon :icon="plugin.icon" />
         </div>
         <div class="plugin-info">
-          <h3>{{ plugin.name }}</h3>
-          <p>{{ plugin.description }}</p>
+          <h3>{{ t(`plugins.${plugin.id}.name`) }}</h3>
+          <p>{{ t(`plugins.${plugin.id}.description`) }}</p>
         </div>
         <div class="plugin-action">
           <KitCheckbox
-            :model-value="settingsStore.enabledPlugins.includes(plugin.id)"
-            @update:model-value="toggleStaticPlugin(plugin.id, $event)"
+            :model-value="isBuiltInPluginEnabled(plugin, settingsStore)"
+            @update:model-value="settingsStore.builtInPluginOverrides[plugin.id] = $event"
           />
         </div>
       </div>

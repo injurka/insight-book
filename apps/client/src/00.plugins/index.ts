@@ -1,6 +1,8 @@
 import type { App } from 'vue'
 import type { Router } from 'vue-router'
+import { watch } from 'vue'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
+import { builtInPlugins, isBuiltInPluginEnabled } from './built-in-plugins'
 import { pluginManager } from './plugin-manager'
 
 let setupPluginsPromise: Promise<void> | null = null
@@ -9,34 +11,34 @@ export function setupPlugins(app: App | null, router: Router): Promise<void> {
   if (setupPluginsPromise)
     return setupPluginsPromise
 
-  setupPluginsPromise = (async () => {
-    const settingsStore = useGlobalSettingsStore()
-    const enabledPlugins = settingsStore.enabledPlugins
-    const pluginsToInstall = []
+  const settings = useGlobalSettingsStore()
+  const isEnabled = (plugin: typeof builtInPlugins[number]) => isBuiltInPluginEnabled(plugin, settings)
 
-    if (enabledPlugins.includes('grammar-rules')) {
-      const { default: grammarRulesPlugin } = await import('@injurka/insight-book-plugin-grammar-rules')
+  async function syncPlugins() {
+    for (const plugin of builtInPlugins) {
+      const installed = pluginManager.plugins.some(item => item.id === plugin.id)
 
-      pluginsToInstall.push(grammarRulesPlugin)
+      try {
+        if (isEnabled(plugin) && !installed) {
+          const { default: instance } = await plugin.load()
+
+          if (isEnabled(plugin))
+            await pluginManager.install(app, router, [instance])
+        }
+        else if (!isEnabled(plugin) && installed) {
+          await pluginManager.uninstall(plugin.id, router)
+        }
+      }
+      catch (error) {
+        console.error(`[Plugin Manager] Failed to update built-in plugin "${plugin.id}":`, error)
+      }
     }
+  }
 
-    if (enabledPlugins.includes('dialogue-trainer')) {
-      const { default: dialogueTrainerPlugin } = await import('@injurka/insight-book-plugin-dialogue-trainer')
-
-      pluginsToInstall.push(dialogueTrainerPlugin)
-    }
-
-    if (enabledPlugins.includes('chinese-analyzer')) {
-      const { default: chineseAnalyzerPlugin } = await import('@injurka/insight-book-plugin-chinese-analyzer')
-
-      pluginsToInstall.push(chineseAnalyzerPlugin)
-    }
-
-    if (pluginsToInstall.length > 0)
-      await pluginManager.install(app, router, pluginsToInstall)
-  })().catch((err) => {
-    setupPluginsPromise = null
-    throw err
+  // Finish the previous activation or deactivation before applying newer settings.
+  let pending = setupPluginsPromise = syncPlugins()
+  watch(() => builtInPlugins.map(isEnabled).join(','), () => {
+    pending = pending.then(syncPlugins)
   })
 
   return setupPluginsPromise

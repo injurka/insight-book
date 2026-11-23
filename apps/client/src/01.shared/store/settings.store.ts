@@ -8,6 +8,7 @@ export const READER_CONTENT_WIDTH_MIN = 50
 export const READER_CONTENT_WIDTH_MAX = 150
 export const READER_CONTENT_WIDTH_STEP = 10
 const READER_CONTENT_WIDTH_DEFAULT = 100
+const LEGACY_BUILT_IN_PLUGIN_IDS = ['grammar-rules', 'dialogue-trainer', 'chinese-analyzer']
 
 function normalizeReaderContentWidth(value: number) {
   if (!Number.isFinite(value))
@@ -84,7 +85,9 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const autoAnalyzeTtsSentences = useLocalStorage<boolean>('global-auto-analyze-tts-sentences', false)
   const autoAnalyzeTtsWords = useLocalStorage<boolean>('global-auto-analyze-tts-words', false)
 
-  const enabledPlugins = useLocalStorage<string[]>('global-enabled-plugins', ['grammar-rules', 'dialogue-trainer', 'chinese-analyzer'])
+  const legacyEnabledPlugins = useLocalStorage<string[]>('global-enabled-plugins', LEGACY_BUILT_IN_PLUGIN_IDS, { writeDefaults: false })
+  const legacyDisabledPlugins = computed(() => LEGACY_BUILT_IN_PLUGIN_IDS.filter(id => !legacyEnabledPlugins.value.includes(id)))
+  const builtInPluginOverrides = useLocalStorage<Record<string, boolean>>('global-built-in-plugin-overrides', {})
 
   const parallelViewMode = useLocalStorage<'none' | 'split' | 'interleaved'>('global-parallel-view-mode', 'none')
   const parallelBlurTranslation = useLocalStorage<boolean>('global-parallel-blur-translation', false)
@@ -126,6 +129,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     readerScrollMode,
     enableHoverRevealBg,
     enableEruda,
-    enabledPlugins,
+    legacyDisabledPlugins,
+    builtInPluginOverrides,
   }
 })
