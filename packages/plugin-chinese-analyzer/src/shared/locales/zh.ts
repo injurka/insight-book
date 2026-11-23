@@ -10,7 +10,6 @@ export default {
   detectedAuto: '自动识别 (RU / 中文)',
   analyzeBtn: 'AI 深度解析',
   analyzingBtn: 'AI 正在解析句法结构...',
-  presetsLabel: '快速体验示例：',
   historyBtn: '历史记录',
   historyTitle: '已解析句子历史',
   historyEmpty: '暂无历史记录。解析任意句子后将自动保存在此处。',

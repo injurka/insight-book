@@ -113,12 +113,24 @@ const { t } = useI18n()
   border-radius: 22px;
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    gap: 10px;
+  }
 }
 
 .section-header {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+
+  @include media-down(sm) {
+    gap: 9px;
+  }
 
   .header-icon-box {
     display: flex;
@@ -131,6 +143,13 @@ const { t } = useI18n()
     color: #3b82f6;
     font-size: 1.35rem;
     flex-shrink: 0;
+
+    @include media-down(sm) {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      font-size: 1.1rem;
+    }
   }
 
   .section-title {
@@ -138,12 +157,20 @@ const { t } = useI18n()
     font-size: 1.12rem;
     font-weight: 800;
     color: var(--fg-primary-color);
+
+    @include media-down(sm) {
+      font-size: 0.98rem;
+    }
   }
 
   .section-subtitle {
     margin: 0;
     font-size: 0.82rem;
     color: var(--fg-secondary-color);
+
+    @include media-down(sm) {
+      font-size: 0.74rem;
+    }
   }
 }
 
@@ -154,6 +181,7 @@ const { t } = useI18n()
 
   @include media-down(sm) {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 
@@ -165,6 +193,13 @@ const { t } = useI18n()
   border-radius: 16px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 12px;
+    gap: 9px;
+    border-radius: 14px;
+    background: var(--bg-secondary-color);
+  }
 }
 
 .pattern-top {
@@ -201,6 +236,11 @@ const { t } = useI18n()
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    padding: 7px 10px;
+    background: var(--bg-primary-color);
+  }
 
   .formula-tag {
     font-size: 0.72rem;
@@ -279,6 +319,11 @@ const { t } = useI18n()
   border-radius: 11px;
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 8px 10px;
+    background: var(--bg-primary-color);
+  }
 
   .ex-text {
     display: flex;

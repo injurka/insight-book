@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import type { VoiceLangMode } from '../../composables/use-analyzer-voice'
-import type { PresetSentenceItem } from '../../model'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { PRESET_SENTENCES } from '../../../../shared/constants/presets'
 import { useAnalyzerVoice } from '../../composables/use-analyzer-voice'
 
 interface Props {
   modelValue: string
   isAnalyzing: boolean
   detectedLanguage: 'zh' | 'ru' | 'auto'
-  activeHanzi: string
 }
 
 const props = defineProps<Props>()
@@ -24,7 +21,6 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const voice = useAnalyzerVoice()
 
-const presets = PRESET_SENTENCES
 const WAVE_MULTIPLIERS = [0.45, 0.78, 1.25, 1.65, 1.25, 0.78, 0.45]
 const voiceLangOptions: VoiceLangMode[] = ['auto', 'zh', 'ru']
 
@@ -93,10 +89,6 @@ function onKeydown(event: KeyboardEvent): void {
 
 function onClear(): void {
   emit('update:modelValue', '')
-}
-
-function onSelectPreset(preset: PresetSentenceItem): void {
-  emit('analyze', preset.input)
 }
 
 async function handleFinishVoiceRecording(): Promise<void> {
@@ -272,33 +264,6 @@ async function handleStartVoiceRecording(): Promise<void> {
           <Icon icon="mdi:close" />
         </button>
       </div>
-
-      <!-- Preset Quick Chips -->
-      <div class="presets-bar">
-        <span class="presets-label">
-          <Icon icon="mdi:star-four-points-outline" class="presets-icon" />
-          {{ t('plugins.chinese-analyzer.presetsLabel') }}
-        </span>
-
-        <div class="presets-list">
-          <button
-            v-for="preset in presets"
-            :key="preset.id"
-            type="button"
-            class="preset-chip"
-            :class="{
-              'is-active': props.activeHanzi === preset.input || props.modelValue === preset.input,
-              'is-ru': preset.lang === 'ru',
-            }"
-            :disabled="props.isAnalyzing || voice.isRecording.value || voice.isTranscribing.value"
-            @click="onSelectPreset(preset)"
-          >
-            <span class="preset-level">{{ preset.level }}</span>
-            <span class="preset-text">{{ preset.label }}</span>
-            <span class="preset-tag">{{ preset.tag }}</span>
-          </button>
-        </div>
-      </div>
     </div>
   </section>
 </template>
@@ -312,14 +277,14 @@ async function handleStartVoiceRecording(): Promise<void> {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px 22px;
-  border-radius: 22px;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 20px;
   background:
     radial-gradient(circle at 100% 0%, rgba(var(--fg-accent-color-rgb), 0.12) 0%, transparent 55%),
     var(--bg-secondary-color);
   border: 1px solid var(--border-primary-color);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
   transition:
     border-color 0.25s ease,
     box-shadow 0.25s ease;
@@ -329,7 +294,7 @@ async function handleStartVoiceRecording(): Promise<void> {
     border-color: var(--fg-accent-color);
     box-shadow:
       0 0 0 3px rgba(var(--fg-accent-color-rgb), 0.14),
-      0 14px 36px rgba(0, 0, 0, 0.08);
+      0 12px 30px rgba(0, 0, 0, 0.08);
   }
 
   &.is-analyzing {
@@ -337,8 +302,10 @@ async function handleStartVoiceRecording(): Promise<void> {
   }
 
   @include media-down(sm) {
-    padding: 16px;
-    border-radius: 18px;
+    padding: 10px 12px;
+    gap: 8px;
+    border-radius: 14px;
+    box-shadow: none;
   }
 }
 
@@ -346,7 +313,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -360,26 +327,26 @@ async function handleStartVoiceRecording(): Promise<void> {
 .voice-lang-switcher {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 4px 2px 8px;
+  gap: 2px;
+  padding: 2px 3px 2px 7px;
   border-radius: 999px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
 
   .vl-icon {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--fg-accent-color);
     margin-right: 2px;
   }
 
   .vl-btn {
-    padding: 2px 8px;
+    padding: 2px 7px;
     border-radius: 999px;
     border: none;
     background: transparent;
     color: var(--fg-secondary-color);
     font-family: inherit;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.16s ease;
@@ -394,10 +361,10 @@ async function handleStartVoiceRecording(): Promise<void> {
 .lang-detect-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  gap: 5px;
+  padding: 3px 10px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   background: var(--bg-tertiary-color);
   color: var(--fg-secondary-color);
@@ -405,7 +372,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   transition: all 0.2s ease;
 
   .pill-icon {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: var(--fg-accent-color);
   }
 
@@ -423,6 +390,11 @@ async function handleStartVoiceRecording(): Promise<void> {
     .pill-icon {
       color: var(--fg-success-color);
     }
+  }
+
+  @include media-down(sm) {
+    font-size: 0.7rem;
+    padding: 2px 8px;
   }
 }
 
@@ -457,14 +429,18 @@ async function handleStartVoiceRecording(): Promise<void> {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border-radius: 16px;
+  border-radius: 15px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
 
   @include media-down(sm) {
     flex-direction: column;
     align-items: stretch;
-    padding: 10px 12px;
+    gap: 8px;
+    padding: 6px 2px 2px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
   }
 }
 
@@ -477,18 +453,23 @@ async function handleStartVoiceRecording(): Promise<void> {
   background: transparent;
   color: var(--fg-primary-color);
   font-family: inherit;
-  font-size: 1.15rem;
+  font-size: 1.12rem;
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 1.45;
 
   &::placeholder {
     color: var(--fg-tertiary-color);
-    font-size: 0.96rem;
+    font-size: 0.94rem;
     font-weight: 400;
   }
 
   @include media-down(sm) {
-    font-size: 1rem;
+    font-size: 0.98rem;
+    line-height: 1.4;
+
+    &::placeholder {
+      font-size: 0.85rem;
+    }
   }
 }
 
@@ -500,6 +481,8 @@ async function handleStartVoiceRecording(): Promise<void> {
 
   @include media-down(sm) {
     justify-content: flex-end;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-secondary-color);
   }
 }
 
@@ -521,19 +504,26 @@ async function handleStartVoiceRecording(): Promise<void> {
     border-color: var(--border-primary-color);
     background: var(--bg-tertiary-color);
   }
+
+  @include media-down(sm) {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: var(--bg-primary-color);
+  }
 }
 
 .voice-mic-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 13px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   border: 1px solid rgba(var(--fg-accent-color-rgb), 0.32);
   background: rgba(var(--fg-accent-color-rgb), 0.12);
   color: var(--fg-accent-color);
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.18s ease;
 
@@ -548,6 +538,13 @@ async function handleStartVoiceRecording(): Promise<void> {
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  @include media-down(sm) {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+  }
 }
 
 .analyze-submit-btn {
@@ -555,14 +552,14 @@ async function handleStartVoiceRecording(): Promise<void> {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 44px;
-  padding: 0 20px;
-  border-radius: 13px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 12px;
   border: none;
   background: linear-gradient(135deg, var(--fg-accent-color) 0%, #c94b1e 100%);
   color: #ffffff;
   font-family: inherit;
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(var(--fg-accent-color-rgb), 0.3);
@@ -587,12 +584,14 @@ async function handleStartVoiceRecording(): Promise<void> {
   }
 
   .submit-icon {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
   }
 
   @include media-down(sm) {
-    flex: 1;
-    height: 42px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 0.84rem;
   }
 }
 
@@ -601,24 +600,30 @@ async function handleStartVoiceRecording(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  min-height: 68px;
-  padding: 12px 16px;
-  border-radius: 16px;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 14px;
+  border-radius: 14px;
   background: var(--bg-primary-color);
   border: 1.5px solid var(--fg-accent-color);
   box-sizing: border-box;
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    min-height: 48px;
+    padding: 8px 10px;
+    border-radius: 11px;
+  }
 }
 
 .rec-status-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 
   .rec-pulse-dot {
-    width: 11px;
-    height: 11px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: #ef4444;
     animation: rec-pulse 1.2s infinite ease-in-out;
@@ -626,13 +631,13 @@ async function handleStartVoiceRecording(): Promise<void> {
 
   .rec-timer {
     font-family: monospace;
-    font-size: 1rem;
+    font-size: 0.94rem;
     font-weight: 800;
     color: var(--fg-primary-color);
   }
 
   .rec-hint {
-    font-size: 0.86rem;
+    font-size: 0.84rem;
     color: var(--fg-secondary-color);
 
     @include media-down(sm) {
@@ -646,12 +651,12 @@ async function handleStartVoiceRecording(): Promise<void> {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  height: 28px;
+  height: 24px;
   flex: 1;
 
   .wave-bar {
-    width: 4px;
-    height: 18px;
+    width: 3.5px;
+    height: 16px;
     border-radius: 999px;
     background: var(--fg-accent-color);
     transform-origin: center;
@@ -669,11 +674,11 @@ async function handleStartVoiceRecording(): Promise<void> {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: none;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   cursor: pointer;
   transition: transform 0.16s ease;
 
@@ -699,17 +704,17 @@ async function handleStartVoiceRecording(): Promise<void> {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 68px;
-  padding: 12px 16px;
-  border-radius: 16px;
+  min-height: 54px;
+  padding: 10px 14px;
+  border-radius: 14px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
-  font-size: 0.94rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--fg-secondary-color);
 
   .transcribing-icon {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     color: var(--fg-accent-color);
   }
 }
@@ -724,7 +729,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.28);
   color: #ef4444;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
 
   .ve-left {
     display: flex;
@@ -733,7 +738,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   }
 
   .ve-icon {
-    font-size: 1.05rem;
+    font-size: 1rem;
     flex-shrink: 0;
   }
 
@@ -746,82 +751,6 @@ async function handleStartVoiceRecording(): Promise<void> {
     color: #ef4444;
     cursor: pointer;
     padding: 2px;
-  }
-}
-
-.presets-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 2px;
-}
-
-.presets-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--fg-secondary-color);
-
-  .presets-icon {
-    color: var(--fg-accent-color);
-    font-size: 0.95rem;
-  }
-}
-
-.presets-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.preset-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 11px;
-  border-radius: 11px;
-  border: 1px solid var(--border-secondary-color);
-  background: var(--bg-primary-color);
-  color: var(--fg-primary-color);
-  font-family: inherit;
-  font-size: 0.82rem;
-  cursor: pointer;
-  transition: all 0.18s ease;
-
-  &:hover:not(:disabled) {
-    border-color: var(--fg-accent-color);
-    background: rgba(var(--fg-accent-color-rgb), 0.06);
-    transform: translateY(-1px);
-  }
-
-  &.is-active {
-    border-color: var(--fg-accent-color);
-    background: rgba(var(--fg-accent-color-rgb), 0.11);
-  }
-
-  .preset-level {
-    padding: 1px 6px;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    background: rgba(var(--fg-accent-color-rgb), 0.14);
-    color: var(--fg-accent-color);
-  }
-
-  &.is-ru .preset-level {
-    background: rgba(38, 157, 105, 0.15);
-    color: var(--fg-success-color);
-  }
-
-  .preset-text {
-    font-weight: 600;
-  }
-
-  .preset-tag {
-    font-size: 0.72rem;
-    color: var(--fg-tertiary-color);
   }
 }
 

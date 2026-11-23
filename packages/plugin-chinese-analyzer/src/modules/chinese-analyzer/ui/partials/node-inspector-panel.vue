@@ -439,6 +439,15 @@ onMounted(() => {
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+
+  @include media-down(sm) {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    gap: 10px;
+  }
 }
 
 .inspector-header {
@@ -449,6 +458,10 @@ onMounted(() => {
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border-secondary-color);
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    padding-bottom: 6px;
+  }
 
   .header-left {
     display: flex;
@@ -466,6 +479,10 @@ onMounted(() => {
     font-size: 1.02rem;
     font-weight: 800;
     color: var(--fg-primary-color);
+
+    @include media-down(sm) {
+      font-size: 0.94rem;
+    }
   }
 }
 
@@ -522,6 +539,10 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+
+  @include media-down(sm) {
+    gap: 10px;
+  }
 }
 
 .hero-box {
@@ -534,6 +555,13 @@ onMounted(() => {
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
   border-left: 4px solid var(--fg-accent-color);
+
+  @include media-down(sm) {
+    padding: 11px 12px;
+    gap: 10px;
+    border-radius: 13px;
+    background: var(--bg-secondary-color);
+  }
 
   &.clause-hero,
   &.comp-hero {
@@ -611,12 +639,20 @@ onMounted(() => {
   font-weight: 800;
   color: var(--fg-primary-color);
   line-height: 1.15;
+
+  @include media-down(sm) {
+    font-size: 1.65rem;
+  }
 }
 
 .hero-meaning {
   font-size: 0.96rem;
   font-weight: 700;
   color: var(--fg-primary-color);
+
+  @include media-down(sm) {
+    font-size: 0.88rem;
+  }
 }
 
 .hero-actions-right {
@@ -699,7 +735,7 @@ onMounted(() => {
   gap: 10px;
 
   @include media-down(sm) {
-    grid-template-columns: 1fr;
+    gap: 8px;
   }
 }
 
@@ -712,6 +748,12 @@ onMounted(() => {
   border-radius: 12px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 8px 10px;
+    border-radius: 11px;
+    background: var(--bg-secondary-color);
+  }
 
   .info-label {
     font-size: 0.7rem;
@@ -741,6 +783,12 @@ onMounted(() => {
   border-radius: 13px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 9px 11px;
+    border-radius: 11px;
+    background: var(--bg-secondary-color);
+  }
 
   .note-heading {
     display: inline-flex;
@@ -798,6 +846,13 @@ onMounted(() => {
   border: 1px solid var(--border-secondary-color);
   cursor: pointer;
   transition: all 0.18s ease;
+
+  @include media-down(sm) {
+    padding: 8px 10px;
+    gap: 10px;
+    border-radius: 11px;
+    background: var(--bg-secondary-color);
+  }
 
   &:hover {
     border-color: var(--fg-accent-color);
@@ -878,6 +933,11 @@ onMounted(() => {
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
 
+  @include media-down(sm) {
+    padding: 7px 10px;
+    background: var(--bg-secondary-color);
+  }
+
   .col-main {
     display: flex;
     align-items: baseline;
@@ -934,6 +994,11 @@ onMounted(() => {
   border: 1px solid var(--border-secondary-color);
   border-left: 3px solid var(--fg-accent-color);
   cursor: pointer;
+
+  @include media-down(sm) {
+    padding: 8px 10px;
+    background: var(--bg-secondary-color);
+  }
 
   &:hover {
     border-color: var(--fg-accent-color);

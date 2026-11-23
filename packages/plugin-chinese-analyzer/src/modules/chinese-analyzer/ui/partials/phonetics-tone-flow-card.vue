@@ -190,12 +190,24 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
   border-radius: 22px;
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    gap: 10px;
+  }
 }
 
 .section-header {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+
+  @include media-down(sm) {
+    gap: 9px;
+  }
 
   .header-icon-box {
     display: flex;
@@ -208,6 +220,13 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
     color: var(--fg-accent-color);
     font-size: 1.35rem;
     flex-shrink: 0;
+
+    @include media-down(sm) {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      font-size: 1.1rem;
+    }
   }
 
   .section-title {
@@ -215,12 +234,20 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
     font-size: 1.12rem;
     font-weight: 800;
     color: var(--fg-primary-color);
+
+    @include media-down(sm) {
+      font-size: 0.98rem;
+    }
   }
 
   .section-subtitle {
     margin: 0;
     font-size: 0.82rem;
     color: var(--fg-secondary-color);
+
+    @include media-down(sm) {
+      font-size: 0.74rem;
+    }
   }
 }
 
@@ -231,6 +258,11 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
   letter-spacing: 0.04em;
   color: var(--fg-secondary-color);
   margin-bottom: 8px;
+
+  @include media-down(sm) {
+    font-size: 0.68rem;
+    margin-bottom: 6px;
+  }
 }
 
 .rhythm-block {
@@ -238,6 +270,12 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
   border-radius: 15px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 10px 12px;
+    border-radius: 13px;
+    background: var(--bg-secondary-color);
+  }
 }
 
 .rhythm-track {
@@ -245,6 +283,10 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+
+  @include media-down(sm) {
+    gap: 6px;
+  }
 }
 
 .rhythm-pill {
@@ -271,6 +313,13 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
     font-size: 0.95rem;
     color: var(--fg-accent-color);
   }
+
+  @include media-down(sm) {
+    padding: 5px 9px;
+    font-size: 0.92rem;
+    border-radius: 9px;
+    background: var(--bg-primary-color);
+  }
 }
 
 .pause-slash {
@@ -285,6 +334,11 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
   font-size: 0.84rem;
   line-height: 1.45;
   color: var(--fg-secondary-color);
+
+  @include media-down(sm) {
+    margin: 7px 0 0;
+    font-size: 0.78rem;
+  }
 }
 
 .contour-block {
@@ -292,6 +346,12 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
   border-radius: 15px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 10px 12px;
+    border-radius: 13px;
+    background: var(--bg-secondary-color);
+  }
 }
 
 .contour-scroll {
@@ -299,6 +359,10 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
   gap: 10px;
   overflow-x: auto;
   padding-bottom: 6px;
+
+  @include media-down(sm) {
+    gap: 6px;
+  }
 }
 
 .syllable-contour-cell {
@@ -358,6 +422,21 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  @include media-down(sm) {
+    min-width: 68px;
+    padding: 6px 4px;
+    border-radius: 10px;
+    background: var(--bg-primary-color);
+
+    .syl-pinyin {
+      font-size: 0.7rem;
+    }
+
+    .syl-hanzi {
+      font-size: 1.1rem;
+    }
   }
 }
 
@@ -443,6 +522,12 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
   border-radius: 14px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--bg-secondary-color);
+  }
 
   .sr-title {
     font-size: 0.86rem;

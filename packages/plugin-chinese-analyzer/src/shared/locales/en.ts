@@ -10,7 +10,6 @@ export default {
   detectedAuto: 'Auto-detect (RU / 中文)',
   analyzeBtn: 'Analyze with AI',
   analyzingBtn: 'AI is analyzing structure...',
-  presetsLabel: 'Quick examples to explore:',
   historyBtn: 'History',
   historyTitle: 'Analyzed Sentences History',
   historyEmpty: 'No history yet. Analyze any sentence and it will be saved here.',

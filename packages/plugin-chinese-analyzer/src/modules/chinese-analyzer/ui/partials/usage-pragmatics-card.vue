@@ -99,12 +99,24 @@ const formalitySteps = [1, 2, 3, 4, 5]
   border-radius: 22px;
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    gap: 10px;
+  }
 }
 
 .section-header {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+
+  @include media-down(sm) {
+    gap: 9px;
+  }
 
   .header-icon-box {
     display: flex;
@@ -117,6 +129,13 @@ const formalitySteps = [1, 2, 3, 4, 5]
     color: #10b981;
     font-size: 1.35rem;
     flex-shrink: 0;
+
+    @include media-down(sm) {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      font-size: 1.1rem;
+    }
   }
 
   .section-title {
@@ -124,12 +143,20 @@ const formalitySteps = [1, 2, 3, 4, 5]
     font-size: 1.12rem;
     font-weight: 800;
     color: var(--fg-primary-color);
+
+    @include media-down(sm) {
+      font-size: 0.98rem;
+    }
   }
 
   .section-subtitle {
     margin: 0;
     font-size: 0.82rem;
     color: var(--fg-secondary-color);
+
+    @include media-down(sm) {
+      font-size: 0.74rem;
+    }
   }
 }
 
@@ -141,6 +168,10 @@ const formalitySteps = [1, 2, 3, 4, 5]
   @include media-down(md) {
     grid-template-columns: 1fr;
   }
+
+  @include media-down(sm) {
+    gap: 10px;
+  }
 }
 
 .usage-panel {
@@ -151,6 +182,13 @@ const formalitySteps = [1, 2, 3, 4, 5]
   border-radius: 15px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 11px 12px;
+    gap: 8px;
+    border-radius: 13px;
+    background: var(--bg-secondary-color);
+  }
 }
 
 .panel-kicker {

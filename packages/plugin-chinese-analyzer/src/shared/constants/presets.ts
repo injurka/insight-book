@@ -1,47 +1,4 @@
-import type { ChineseSentenceAnalysis, PresetSentenceItem } from '../../modules/chinese-analyzer/model'
-
-export const PRESET_SENTENCES: PresetSentenceItem[] = [
-  {
-    id: 'preset_culture',
-    label: '我对中国传统文化越来越感兴趣',
-    input: '我最近对中国传统文化越来越感兴趣了。',
-    lang: 'zh',
-    level: 'HSK 3',
-    tag: 'Конструкция 对...感兴趣',
-  },
-  {
-    id: 'preset_ba',
-    label: '请把那本书放在桌子上',
-    input: '请把那本词典放在我的书桌上。',
-    lang: 'zh',
-    level: 'HSK 3',
-    tag: 'Конструкция с 把',
-  },
-  {
-    id: 'preset_ru_tea',
-    label: 'RU: Хочу выпить чашку горячего чая',
-    input: 'Я бы хотел выпить чашку горячего зелёного чая в тихом месте.',
-    lang: 'ru',
-    level: 'RU → 中文',
-    tag: 'Русский ввод',
-  },
-  {
-    id: 'preset_chengyu',
-    label: '入乡随俗，慢慢就习惯了',
-    input: '常言道入乡随俗，你住久了慢慢就习惯了。',
-    lang: 'zh',
-    level: 'HSK 4',
-    tag: 'Чэнъюй + 慢慢就',
-  },
-  {
-    id: 'preset_ru_business',
-    label: 'RU: Давайте обсудим детали завтра',
-    input: 'Если у вас будет время, давайте обсудим детали проекта завтра утром.',
-    lang: 'ru',
-    level: 'RU → 中文',
-    tag: 'Деловой стиль',
-  },
-]
+import type { ChineseSentenceAnalysis } from '../../modules/chinese-analyzer/model'
 
 export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
   sentence: {

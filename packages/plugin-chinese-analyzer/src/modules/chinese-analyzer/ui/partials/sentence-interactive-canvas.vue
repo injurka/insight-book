@@ -531,6 +531,11 @@ onMounted(() => {
     border-radius: 20px;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
   }
+
+  @include media-down(sm) {
+    border-radius: 14px;
+    box-shadow: none;
+  }
 }
 
 .canvas-toolbar {
@@ -542,6 +547,11 @@ onMounted(() => {
   background: var(--bg-secondary-color);
   border-bottom: 1px solid var(--border-secondary-color);
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    padding: 10px 12px;
+    gap: 8px;
+  }
 }
 
 .toolbar-title-area {
@@ -558,6 +568,10 @@ onMounted(() => {
   .canvas-title-icon {
     font-size: 1.35rem;
     color: var(--fg-accent-color);
+
+    @include media-down(sm) {
+      font-size: 1.1rem;
+    }
   }
 
   .canvas-title {
@@ -565,12 +579,20 @@ onMounted(() => {
     font-size: 1.15rem;
     font-weight: 800;
     color: var(--fg-primary-color);
+
+    @include media-down(sm) {
+      font-size: 0.96rem;
+    }
   }
 
   .canvas-subtitle {
     margin: 0;
     font-size: 0.8rem;
     color: var(--fg-secondary-color);
+
+    @include media-down(sm) {
+      display: none;
+    }
   }
 }
 
@@ -579,6 +601,10 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    gap: 6px;
+  }
 }
 
 .mode-segmented {
@@ -587,6 +613,11 @@ onMounted(() => {
   border-radius: 12px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 2px;
+    border-radius: 9px;
+  }
 }
 
 .segment-btn {
@@ -607,6 +638,13 @@ onMounted(() => {
   &.active {
     background: var(--fg-accent-color);
     color: #ffffff;
+  }
+
+  @include media-down(sm) {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    gap: 4px;
+    border-radius: 7px;
   }
 }
 
@@ -636,6 +674,17 @@ onMounted(() => {
     padding: 0;
     justify-content: center;
     font-size: 1.05rem;
+  }
+
+  @include media-down(sm) {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 0.72rem;
+    border-radius: 8px;
+
+    &.icon-only {
+      width: 30px;
+    }
   }
 }
 
@@ -684,6 +733,13 @@ onMounted(() => {
   background: var(--bg-primary-color);
   border-bottom: 1px solid var(--border-secondary-color);
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    padding: 6px 10px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
 }
 
 .legend-layers {
@@ -691,6 +747,12 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    gap: 4px;
+  }
 
   .legend-arrow {
     color: var(--fg-tertiary-color);
@@ -709,6 +771,13 @@ onMounted(() => {
   background: var(--bg-secondary-color);
   color: var(--fg-secondary-color);
   border: 1px solid var(--border-secondary-color);
+  white-space: nowrap;
+
+  @include media-down(sm) {
+    padding: 2px 7px;
+    font-size: 0.66rem;
+    gap: 4px;
+  }
 
   .dot {
     width: 7px;
@@ -738,6 +807,12 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    gap: 4px;
+  }
 }
 
 .tone-chip {
@@ -745,6 +820,12 @@ onMounted(() => {
   border-radius: 6px;
   font-size: 0.72rem;
   font-weight: 700;
+  white-space: nowrap;
+
+  @include media-down(sm) {
+    padding: 2px 6px;
+    font-size: 0.65rem;
+  }
 
   &.tone-1 {
     background: rgba(239, 68, 68, 0.14);
@@ -791,6 +872,10 @@ onMounted(() => {
   .is-fullscreen & {
     flex: 1;
     height: auto;
+  }
+
+  @include media-down(sm) {
+    height: 430px;
   }
 }
 
@@ -1248,6 +1333,11 @@ onMounted(() => {
   gap: 18px;
   padding: 20px;
   background: var(--bg-primary-color);
+
+  @include media-down(sm) {
+    padding: 10px;
+    gap: 10px;
+  }
 }
 
 .linear-clause-group {
@@ -1258,6 +1348,12 @@ onMounted(() => {
   border-radius: 16px;
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 10px;
+    gap: 8px;
+    border-radius: 12px;
+  }
 }
 
 .linear-clause-header {
@@ -1271,6 +1367,11 @@ onMounted(() => {
   border: 1px dashed var(--border-primary-color);
   cursor: pointer;
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    padding: 6px 9px;
+    gap: 6px;
+  }
 
   .clause-header-left {
     display: flex;
@@ -1309,6 +1410,10 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 14px;
   align-items: flex-start;
+
+  @include media-down(sm) {
+    gap: 8px;
+  }
 }
 
 .linear-token-column {
@@ -1317,6 +1422,12 @@ onMounted(() => {
   gap: 10px;
   flex: 1 1 200px;
   max-width: 280px;
+
+  @include media-down(sm) {
+    flex: 1 1 135px;
+    max-width: 100%;
+    gap: 6px;
+  }
 }
 
 .linear-word-card {
@@ -1329,6 +1440,12 @@ onMounted(() => {
   border: 1px solid var(--border-primary-color);
   border-top: 3px solid var(--fg-accent-color);
   cursor: pointer;
+
+  @include media-down(sm) {
+    padding: 8px 10px;
+    border-radius: 11px;
+    gap: 4px;
+  }
 
   .lw-top {
     display: flex;

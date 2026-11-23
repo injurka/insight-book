@@ -95,7 +95,6 @@ onUnmounted(() => {
       v-model="analyzer.queryInput.value"
       :is-analyzing="analyzer.isAnalyzing.value"
       :detected-language="analyzer.detectedLanguage.value"
-      :active-hanzi="analyzer.currentAnalysis.value.sentence.hanzi"
       @analyze="analyzer.analyzeSentence"
     />
 
@@ -217,6 +216,14 @@ onUnmounted(() => {
     padding-left: max(12px, env(safe-area-inset-left, 0px));
     padding-right: max(12px, env(safe-area-inset-right, 0px));
   }
+
+  @include media-down(sm) {
+    gap: 14px;
+    padding-top: calc(10px + var(--safe-area-top, env(safe-area-inset-top, 0px)));
+    padding-bottom: calc(28px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+    padding-left: max(10px, env(safe-area-inset-left, 0px));
+    padding-right: max(10px, env(safe-area-inset-right, 0px));
+  }
 }
 
 .page-header {
@@ -225,6 +232,10 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    gap: 8px;
+  }
 }
 
 .header-left {
@@ -236,6 +247,10 @@ onUnmounted(() => {
   .back-btn {
     flex-shrink: 0;
   }
+
+  @include media-down(sm) {
+    gap: 8px;
+  }
 }
 
 .header-titles {
@@ -246,6 +261,10 @@ onUnmounted(() => {
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+
+    @include media-down(sm) {
+      gap: 6px;
+    }
   }
 
   .page-title {
@@ -256,7 +275,7 @@ onUnmounted(() => {
     letter-spacing: -0.02em;
 
     @include media-down(sm) {
-      font-size: 1.45rem;
+      font-size: 1.22rem;
     }
   }
 
@@ -268,6 +287,12 @@ onUnmounted(() => {
     background: rgba(var(--fg-accent-color-rgb), 0.14);
     color: var(--fg-accent-color);
     border: 1px solid rgba(var(--fg-accent-color-rgb), 0.3);
+
+    @include media-down(sm) {
+      padding: 2px 7px;
+      font-size: 0.66rem;
+      border-radius: 6px;
+    }
   }
 
   .page-subtitle {
@@ -275,6 +300,12 @@ onUnmounted(() => {
     font-size: 0.9rem;
     color: var(--fg-secondary-color);
     line-height: 1.4;
+
+    @include media-down(sm) {
+      margin: 2px 0 0;
+      font-size: 0.76rem;
+      line-height: 1.32;
+    }
   }
 }
 
@@ -305,6 +336,14 @@ onUnmounted(() => {
     font-size: 0.72rem;
     background: var(--fg-accent-color);
     color: #ffffff;
+  }
+
+  @include media-down(sm) {
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 9px;
+    font-size: 0.76rem;
+    gap: 5px;
   }
 }
 
@@ -359,6 +398,10 @@ onUnmounted(() => {
     opacity: 0.58;
     pointer-events: none;
   }
+
+  @include media-down(sm) {
+    gap: 16px;
+  }
 }
 
 .canvas-inspector-layout {
@@ -369,6 +412,10 @@ onUnmounted(() => {
 
   @include media-down(lg) {
     grid-template-columns: 1fr;
+  }
+
+  @include media-down(sm) {
+    gap: 14px;
   }
 }
 
@@ -385,5 +432,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 22px;
+
+  @include media-down(sm) {
+    gap: 16px;
+  }
 }
 </style>

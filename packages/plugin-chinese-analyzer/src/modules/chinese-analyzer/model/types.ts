@@ -167,13 +167,4 @@ export interface AnalysisHistoryItem {
   analysis: ChineseSentenceAnalysis
 }
 
-export interface PresetSentenceItem {
-  id: string
-  label: string
-  input: string
-  lang: 'zh' | 'ru'
-  level: string
-  tag: string
-}
-
 export type CanvasViewMode = 'hierarchy' | 'linear'

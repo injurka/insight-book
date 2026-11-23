@@ -90,12 +90,24 @@ const { t } = useI18n()
   border-radius: 22px;
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    gap: 10px;
+  }
 }
 
 .section-header {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+
+  @include media-down(sm) {
+    gap: 9px;
+  }
 
   .header-icon-box {
     display: flex;
@@ -108,6 +120,13 @@ const { t } = useI18n()
     color: #a855f7;
     font-size: 1.35rem;
     flex-shrink: 0;
+
+    @include media-down(sm) {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      font-size: 1.1rem;
+    }
   }
 
   .section-title {
@@ -115,12 +134,20 @@ const { t } = useI18n()
     font-size: 1.12rem;
     font-weight: 800;
     color: var(--fg-primary-color);
+
+    @include media-down(sm) {
+      font-size: 0.98rem;
+    }
   }
 
   .section-subtitle {
     margin: 0;
     font-size: 0.82rem;
     color: var(--fg-secondary-color);
+
+    @include media-down(sm) {
+      font-size: 0.74rem;
+    }
   }
 }
 
@@ -128,6 +155,11 @@ const { t } = useI18n()
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 14px;
+
+  @include media-down(sm) {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }
 
 .alt-card {
@@ -142,6 +174,13 @@ const { t } = useI18n()
 
   &:hover {
     border-color: var(--border-primary-color);
+  }
+
+  @include media-down(sm) {
+    padding: 12px;
+    gap: 8px;
+    border-radius: 14px;
+    background: var(--bg-secondary-color);
   }
 }
 

@@ -80,18 +80,24 @@ function onTokenClick(token: LexemeToken): void {
           @click="emit('update:showTraditional', !props.showTraditional)"
         >
           <Icon icon="mdi:ideogram-cjk-variant" />
-          <span>
+          <span class="pill-text-desktop">
             {{ props.showTraditional ? t('plugins.chinese-analyzer.showTraditional') : t('plugins.chinese-analyzer.showSimplified') }}
+          </span>
+          <span class="pill-text-mobile">
+            {{ props.showTraditional ? '繁' : '简' }}
           </span>
         </button>
 
         <button
           type="button"
           class="action-pill"
+          :title="t('plugins.chinese-analyzer.copySentence')"
           @click="copySentence"
         >
           <Icon :icon="isCopied ? 'mdi:check' : 'mdi:content-copy'" />
-          <span>{{ isCopied ? t('plugins.chinese-analyzer.copied') : t('plugins.chinese-analyzer.copySentence') }}</span>
+          <span class="pill-text-desktop">
+            {{ isCopied ? t('plugins.chinese-analyzer.copied') : t('plugins.chinese-analyzer.copySentence') }}
+          </span>
         </button>
 
         <button
@@ -131,7 +137,7 @@ function onTokenClick(token: LexemeToken): void {
       </button>
     </div>
 
-    <!-- Translations & Formula Grid -->
+    <!-- Translations & Formula Grid (Grouped single surface on mobile) -->
     <div class="translations-grid">
       <div class="translation-box natural-box">
         <div class="box-label">
@@ -170,17 +176,20 @@ function onTokenClick(token: LexemeToken): void {
 .overview-card {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 22px 24px;
+  gap: 16px;
+  padding: 20px 22px;
   border-radius: 22px;
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
 
   @include media-down(sm) {
-    padding: 16px;
-    border-radius: 18px;
-    gap: 14px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    gap: 10px;
   }
 }
 
@@ -188,23 +197,27 @@ function onTokenClick(token: LexemeToken): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
+
+  @include media-down(sm) {
+    gap: 8px;
+  }
 }
 
 .meta-badges {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .meta-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 11px;
-  border-radius: 9px;
-  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.76rem;
   font-weight: 700;
 
   &.badge-hsk {
@@ -224,26 +237,40 @@ function onTokenClick(token: LexemeToken): void {
     border: 1px solid var(--border-secondary-color);
     font-weight: 600;
   }
+
+  @include media-down(sm) {
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    border-radius: 7px;
+
+    &.badge-type {
+      background: var(--bg-secondary-color);
+    }
+  }
 }
 
 .overview-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
+}
+
+.pill-text-mobile {
+  display: none;
 }
 
 .action-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 13px;
-  border-radius: 11px;
+  padding: 6px 12px;
+  border-radius: 10px;
   border: 1px solid var(--border-secondary-color);
   background: var(--bg-primary-color);
   color: var(--fg-primary-color);
   font-family: inherit;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.18s ease;
@@ -274,21 +301,38 @@ function onTokenClick(token: LexemeToken): void {
       border-color: var(--fg-error-color);
     }
   }
+
+  @include media-down(sm) {
+    padding: 5px 9px;
+    font-size: 0.74rem;
+    border-radius: 9px;
+    background: var(--bg-secondary-color);
+
+    .pill-text-desktop {
+      display: none;
+    }
+
+    .pill-text-mobile {
+      display: inline;
+      font-weight: 700;
+    }
+  }
 }
 
 .original-query-banner {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 14px;
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 11px;
   background: rgba(38, 157, 105, 0.1);
   border: 1px solid rgba(38, 157, 105, 0.25);
-  font-size: 0.86rem;
+  font-size: 0.84rem;
+  flex-wrap: wrap;
 
   .query-icon {
     color: var(--fg-success-color);
-    font-size: 1.05rem;
+    font-size: 1rem;
     flex-shrink: 0;
   }
 
@@ -301,6 +345,11 @@ function onTokenClick(token: LexemeToken): void {
     color: var(--fg-primary-color);
     font-weight: 500;
   }
+
+  @include media-down(sm) {
+    padding: 7px 10px;
+    font-size: 0.78rem;
+  }
 }
 
 .ruby-sentence-ribbon {
@@ -308,10 +357,17 @@ function onTokenClick(token: LexemeToken): void {
   flex-wrap: wrap;
   align-items: stretch;
   gap: 10px;
-  padding: 16px;
-  border-radius: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
+
+  @include media-down(sm) {
+    padding: 10px;
+    gap: 6px;
+    border-radius: 14px;
+    background: var(--bg-secondary-color);
+  }
 }
 
 .ruby-token-item {
@@ -320,10 +376,10 @@ function onTokenClick(token: LexemeToken): void {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
-  min-width: 68px;
-  padding: 10px 14px;
-  border-radius: 14px;
+  gap: 3px;
+  min-width: 64px;
+  padding: 9px 12px;
+  border-radius: 13px;
   border: 1px solid var(--border-secondary-color);
   border-bottom: 3px solid var(--fg-accent-color);
   background: var(--bg-secondary-color);
@@ -374,27 +430,49 @@ function onTokenClick(token: LexemeToken): void {
   }
 
   .ruby-pinyin {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: var(--fg-secondary-color);
     letter-spacing: 0.02em;
   }
 
   .ruby-hanzi {
-    font-size: 1.75rem;
+    font-size: 1.65rem;
     font-weight: 700;
     color: var(--fg-primary-color);
-    line-height: 1.2;
+    line-height: 1.18;
   }
 
   .ruby-gloss {
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     font-weight: 500;
     color: var(--fg-tertiary-color);
-    max-width: 120px;
+    max-width: 115px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  @include media-down(sm) {
+    min-width: 48px;
+    padding: 6px 8px;
+    gap: 2px;
+    border-radius: 10px;
+    background: var(--bg-primary-color);
+    border-bottom-width: 2.5px;
+
+    .ruby-pinyin {
+      font-size: 0.7rem;
+    }
+
+    .ruby-hanzi {
+      font-size: 1.28rem;
+    }
+
+    .ruby-gloss {
+      font-size: 0.65rem;
+      max-width: 86px;
+    }
   }
 }
 
@@ -406,13 +484,21 @@ function onTokenClick(token: LexemeToken): void {
   @include media-down(md) {
     grid-template-columns: 1fr;
   }
+
+  @include media-down(sm) {
+    gap: 0;
+    border-radius: 14px;
+    background: var(--bg-secondary-color);
+    border: 1px solid var(--border-secondary-color);
+    overflow: hidden;
+  }
 }
 
 .translation-box {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px;
+  gap: 5px;
+  padding: 13px 15px;
   border-radius: 14px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
@@ -421,7 +507,7 @@ function onTokenClick(token: LexemeToken): void {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.76rem;
+    font-size: 0.74rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -429,32 +515,60 @@ function onTokenClick(token: LexemeToken): void {
   }
 
   .box-icon {
-    font-size: 0.98rem;
+    font-size: 0.96rem;
     color: var(--fg-accent-color);
   }
 
   .box-text {
     margin: 0;
-    font-size: 0.94rem;
-    line-height: 1.48;
+    font-size: 0.92rem;
+    line-height: 1.45;
     color: var(--fg-primary-color);
   }
 
   .primary-translation {
-    font-size: 1.02rem;
+    font-size: 1rem;
     font-weight: 600;
   }
 
   .literal-text {
     color: var(--fg-secondary-color);
-    font-size: 0.88rem;
+    font-size: 0.86rem;
   }
 
   .formula-text {
     font-family: monospace;
-    font-size: 0.86rem;
+    font-size: 0.84rem;
     font-weight: 600;
     color: var(--fg-accent-color);
+  }
+
+  @include media-down(sm) {
+    padding: 9px 12px;
+    gap: 3px;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+
+    & + .translation-box {
+      border-top: 1px solid var(--border-secondary-color);
+    }
+
+    .box-label {
+      font-size: 0.68rem;
+    }
+
+    .primary-translation {
+      font-size: 0.92rem;
+    }
+
+    .literal-text {
+      font-size: 0.8rem;
+    }
+
+    .formula-text {
+      font-size: 0.78rem;
+    }
   }
 }
 </style>
