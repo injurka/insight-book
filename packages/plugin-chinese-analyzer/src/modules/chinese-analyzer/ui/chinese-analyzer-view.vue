@@ -5,6 +5,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef } from 
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitActivityLoader } from '~/02.kit/molecules/kit-activity-loader/ui'
 import { useAnalyzerTts } from '../composables/use-analyzer-tts'
 import { useSentenceAnalyzer } from '../composables/use-sentence-analyzer'
 import AlternativesSection from './partials/alternatives-section.vue'
@@ -52,7 +53,12 @@ function onSelectHistoryItem(item: AnalysisHistoryItem): void {
   void scrollToPageStart()
 }
 async function analyzeAndScroll(text?: string): Promise<void> {
-  if (await analyzer.analyzeSentence(text))
+  const pending = analyzer.analyzeSentence(text)
+
+  if (analyzer.isAnalyzing.value)
+    await scrollToPageStart()
+
+  if (await pending)
     await scrollToPageStart()
 }
 
@@ -113,10 +119,12 @@ onUnmounted(() => {
 
     <CachedChineseEntry v-if="props.initialSentence === undefined" :text="cachePreviewText" />
 
-    <div v-if="props.initialSentence !== undefined && analyzer.isAnalyzing.value && !viewAnalysis" class="reader-analysis-loading" role="status">
-      <Icon icon="mdi:loading" class="reader-analysis-spinner" aria-hidden="true" />
-      <span>{{ t('plugins.chinese-analyzer.analyzingBtn') }}</span>
-    </div>
+    <KitActivityLoader
+      v-if="analyzer.isAnalyzing.value"
+      icon="mdi:translate"
+      :title="t('plugins.chinese-analyzer.loadingTitle')"
+      :description="t('plugins.chinese-analyzer.loadingDescription')"
+    />
 
     <!-- Error Alert -->
     <div v-if="analyzer.errorMessage.value" class="error-alert">
@@ -135,7 +143,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Main Analysis Content -->
-    <div v-if="viewAnalysis" class="analysis-content" :class="{ 'is-loading': analyzer.isAnalyzing.value }">
+    <div v-if="viewAnalysis" v-show="!analyzer.isAnalyzing.value" class="analysis-content">
       <!-- 0. Sentence Switcher (only for multi-sentence input) -->
       <SentenceSwitcher
         v-if="analyzer.sentenceTabs.value.length > 0"
@@ -233,32 +241,6 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .chinese-analyzer-page.is-embedded {
   padding: 0;
-}
-
-.reader-analysis-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 9rem;
-  color: var(--fg-secondary-color);
-}
-
-.reader-analysis-spinner {
-  color: var(--fg-accent-color);
-  animation: reader-analysis-spin 1s linear infinite;
-}
-
-@keyframes reader-analysis-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reader-analysis-spinner {
-    animation: none;
-  }
 }
 
 .audio-cache-status {
@@ -435,12 +417,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 22px;
-  transition: opacity 0.25s ease;
-
-  &.is-loading {
-    opacity: 0.58;
-    pointer-events: none;
-  }
 
   @include media-down(sm) {
     gap: 16px;

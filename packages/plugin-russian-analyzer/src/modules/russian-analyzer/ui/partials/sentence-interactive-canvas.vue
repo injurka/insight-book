@@ -209,7 +209,8 @@ onMounted(() => {
               @click="emit('update:viewMode', 'hierarchy')"
             >
               <Icon icon="mdi:sitemap-outline" />
-              <span>{{ t('plugins.russian-analyzer.viewHierarchy') }}</span>
+              <span class="mode-label">{{ t('plugins.russian-analyzer.viewHierarchy') }}</span>
+              <span class="mode-label-short" aria-hidden="true">{{ t('plugins.russian-analyzer.viewHierarchyShort') }}</span>
             </button>
             <button
               type="button"
@@ -221,7 +222,8 @@ onMounted(() => {
               @click="emit('update:viewMode', 'linear')"
             >
               <Icon icon="mdi:layers-triple-outline" />
-              <span>{{ t('plugins.russian-analyzer.viewLinear') }}</span>
+              <span class="mode-label">{{ t('plugins.russian-analyzer.viewLinear') }}</span>
+              <span class="mode-label-short" aria-hidden="true">{{ t('plugins.russian-analyzer.viewLinearShort') }}</span>
             </button>
           </div>
 
@@ -945,7 +947,7 @@ onMounted(() => {
     cursor: grabbing;
   }
 
-  .is-fullscreen & {
+  .canvas-shell.is-fullscreen > & {
     flex: 1;
     height: auto;
   }
@@ -1405,7 +1407,7 @@ onMounted(() => {
   padding: 20px;
   background: var(--bg-primary-color);
 
-  .is-fullscreen & {
+  .canvas-shell.is-fullscreen > & {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -1656,5 +1658,6 @@ onMounted(() => {
     color: var(--fg-secondary-color);
   }
 }
+@include compact-canvas-inline;
 @include compact-canvas-fullscreen;
 </style>

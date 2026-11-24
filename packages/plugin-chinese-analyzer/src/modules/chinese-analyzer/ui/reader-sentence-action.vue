@@ -17,7 +17,8 @@ const ChineseAnalyzerView = defineAsyncComponent(() => import('./chinese-analyze
 <template>
   <KitAnalysisDialogAction
     :title="t('plugins.chinese-analyzer.pageTitle')"
-    :loading-label="t('plugins.chinese-analyzer.analyzingBtn')"
+    :loading-title="t('plugins.chinese-analyzer.loadingTitle')"
+    :loading-description="t('plugins.chinese-analyzer.loadingDescription')"
     icon="mdi:translate"
     @open="emit('open')"
   >

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { ref } from 'vue'
+import { KitActivityLoader } from '~/02.kit/molecules/kit-activity-loader/ui'
 import KitDialog from './kit-dialog.vue'
 
 interface Props {
   title: string
-  loadingLabel: string
+  loadingTitle: string
+  loadingDescription: string
   icon: string
 }
 
@@ -43,9 +45,11 @@ function openAnalysis() {
     <Suspense v-if="visible">
       <slot />
       <template #fallback>
-        <p role="status">
-          {{ props.loadingLabel }}
-        </p>
+        <KitActivityLoader
+          :icon="props.icon"
+          :title="props.loadingTitle"
+          :description="props.loadingDescription"
+        />
       </template>
     </Suspense>
   </KitDialog>

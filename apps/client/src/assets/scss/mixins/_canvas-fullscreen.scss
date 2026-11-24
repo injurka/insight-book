@@ -1,5 +1,97 @@
 @use './media' as *;
 
+@mixin compact-canvas-inline {
+  .mode-label-short {
+    display: none;
+  }
+
+  @include media-down(sm) {
+    .canvas-shell:not(.is-fullscreen) {
+      --canvas-control-height: 44px;
+
+      .canvas-toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .toolbar-controls {
+        display: grid;
+        grid-template-columns: var(--canvas-control-height) minmax(0, 1fr) var(--canvas-control-height);
+        gap: 6px;
+      }
+
+      .mode-segmented,
+      .layers-toggle,
+      .fullscreen-toggle,
+      .zoom-group {
+        box-sizing: border-box;
+        height: var(--canvas-control-height);
+      }
+
+      .mode-segmented {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2px;
+      }
+
+      .segment-btn {
+        justify-content: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+
+        svg {
+          flex-shrink: 0;
+          font-size: 1rem;
+        }
+      }
+
+      .mode-label,
+      .layers-toggle > span {
+        display: none;
+      }
+
+      .mode-label-short {
+        display: inline;
+      }
+
+      .layers-toggle,
+      .fullscreen-toggle {
+        justify-content: center;
+        padding: 0;
+        font-size: 1.1rem;
+      }
+
+      .fullscreen-toggle {
+        grid-column: 3;
+        width: 100%;
+      }
+
+      .zoom-group {
+        justify-self: center;
+        width: 100%;
+        max-width: 212px;
+        gap: 0;
+
+        .zoom-btn {
+          flex: 1;
+          min-width: 0;
+          height: 100%;
+          padding: 0;
+          font-size: 1.05rem;
+        }
+
+        .zoom-readout {
+          min-width: 38px;
+          font-variant-numeric: tabular-nums;
+        }
+      }
+    }
+  }
+}
+
 @mixin compact-canvas-fullscreen {
   .compact-zoom-readout {
     display: none;

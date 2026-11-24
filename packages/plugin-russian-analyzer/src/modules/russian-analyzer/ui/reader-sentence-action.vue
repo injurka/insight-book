@@ -17,7 +17,8 @@ const RussianAnalyzerView = defineAsyncComponent(() => import('./russian-analyze
 <template>
   <KitAnalysisDialogAction
     :title="t('plugins.russian-analyzer.pageTitle')"
-    :loading-label="t('plugins.russian-analyzer.analyzingBtn')"
+    :loading-title="t('plugins.russian-analyzer.loadingTitle')"
+    :loading-description="t('plugins.russian-analyzer.loadingDescription')"
     icon="mdi:alphabet-cyrillic"
     @open="emit('open')"
   >

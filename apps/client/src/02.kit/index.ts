@@ -3,6 +3,7 @@ import { KitCheckbox } from './atoms/kit-checkbox/ui'
 import { KitImage } from './atoms/kit-image/ui'
 import { KitInput } from './atoms/kit-input/ui'
 import { KitSkeleton } from './atoms/kit-skeleton/ui'
+import { KitActivityLoader } from './molecules/kit-activity-loader/ui'
 import { KitDropdown } from './molecules/kit-dropdown/ui'
 import { KitPageHeader } from './molecules/kit-page-header/ui'
 import { KitSelect } from './molecules/kit-select/ui'
@@ -19,6 +20,7 @@ import { KitReloadPrompt } from './organisms/kit-reload-prompt/ui'
 import { KitToastManager } from './organisms/kit-toast-manager/ui'
 
 export {
+  KitActivityLoader,
   KitBtn,
   KitCheckbox,
   KitDialog,
