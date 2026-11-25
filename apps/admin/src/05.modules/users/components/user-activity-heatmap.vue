@@ -7,19 +7,24 @@ interface Props {
   days: UserHeatmapDay[]
 }
 
-const props = defineProps<Props>()
+type ActivityLevel = 0 | 1 | 2 | 3 | 4
 
 interface CalendarCell {
   date: string
-  level: 0 | 1 | 2 | 3 | 4
+  level: ActivityLevel
   data: UserHeatmapDay | null
 }
 
+const props = defineProps<Props>()
+
 const MS_PER_DAY = 86_400_000
+const DAYS_BACK = 181
+const MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
+const WEEKDAY_LABELS = ['Пн', '', 'Ср', '', 'Пт', '', '']
 
 const hoveredCell = ref<CalendarCell | null>(null)
 
-function resolveActivityLevel(entry: UserHeatmapDay | null): 0 | 1 | 2 | 3 | 4 {
+function resolveActivityLevel(entry: UserHeatmapDay | null): ActivityLevel {
   if (!entry)
     return 0
 
@@ -29,45 +34,50 @@ function resolveActivityLevel(entry: UserHeatmapDay | null): 0 | 1 | 2 | 3 | 4 {
     return 3
   if (entry.count >= 4)
     return 2
-  if (entry.count >= 1 || entry.activeSeconds > 0)
-    return 1
 
-  return 0
+  return entry.count >= 1 || entry.activeSeconds > 0 ? 1 : 0
 }
 
-const weeks = computed(() => {
-  const byDate = new Map(props.days.map(d => [d.date, d]))
-
+function buildWeeks(days: UserHeatmapDay[]): CalendarCell[][] {
+  const byDate = new Map(days.map(d => [d.date, d]))
   const today = new Date()
   today.setUTCHours(0, 0, 0, 0)
-  const todayMs = today.getTime()
 
-  const start = new Date(todayMs - 181 * MS_PER_DAY)
-  const dayOfWeek = (start.getUTCDay() + 6) % 7
-  let cursorMs = start.getTime() - dayOfWeek * MS_PER_DAY
+  const start = new Date(today.getTime() - DAYS_BACK * MS_PER_DAY)
+  const mondayOffset = (start.getUTCDay() + 6) % 7
+  const firstMs = start.getTime() - mondayOffset * MS_PER_DAY
+  const totalDays = Math.round((today.getTime() - firstMs) / MS_PER_DAY) + 1
 
-  const result: CalendarCell[][] = []
-  let currentWeek: CalendarCell[] = []
+  const cells = Array.from({ length: totalDays }, (_, index): CalendarCell => {
+    const date = new Date(firstMs + index * MS_PER_DAY).toISOString().slice(0, 10)
+    const data = byDate.get(date) ?? null
 
-  while (cursorMs <= todayMs) {
-    const dateStr = new Date(cursorMs).toISOString().slice(0, 10)
-    const entry = byDate.get(dateStr) ?? null
+    return { date, level: resolveActivityLevel(data), data }
+  })
 
-    currentWeek.push({ date: dateStr, level: resolveActivityLevel(entry), data: entry })
+  return Array.from({ length: Math.ceil(cells.length / 7) }, (_, w) => cells.slice(w * 7, w * 7 + 7))
+}
 
-    if (currentWeek.length === 7) {
-      result.push(currentWeek)
-      currentWeek = []
-    }
+function monthOf(week: CalendarCell[] | undefined): number | null {
+  return week ? Number(week[0].date.slice(5, 7)) - 1 : null
+}
 
-    cursorMs += MS_PER_DAY
-  }
+function monthLabelFor(weeks: CalendarCell[][], index: number): string {
+  const current = monthOf(weeks[index])
+  const previous = index > 0 ? monthOf(weeks[index - 1]) : null
 
-  if (currentWeek.length > 0)
-    result.push(currentWeek)
+  if (current === null || current === previous)
+    return ''
 
-  return result
-})
+  // Skip a label that would collide with the next month label at the very start.
+  if (index === 0 && monthOf(weeks[2]) !== current)
+    return ''
+
+  return MONTHS[current]
+}
+
+const weeks = computed(() => buildWeeks(props.days))
+const monthLabels = computed(() => weeks.value.map((_, index) => monthLabelFor(weeks.value, index)))
 
 function formatDateRu(dateStr: string): string {
   const [y, m, d] = dateStr.split('-')
@@ -77,13 +87,15 @@ function formatDateRu(dateStr: string): string {
 </script>
 
 <template>
-  <div class="heatmap">
+  <div class="heatmap" :style="{ '--weeks': weeks.length }">
+    <div class="heatmap__months">
+      <span />
+      <span v-for="(label, idx) in monthLabels" :key="idx" class="heatmap__month">{{ label }}</span>
+    </div>
+
     <div class="heatmap__grid" @mouseleave="hoveredCell = null">
-      <div
-        v-for="(week, wIdx) in weeks"
-        :key="wIdx"
-        class="heatmap__week"
-      >
+      <span v-for="(label, idx) in WEEKDAY_LABELS" :key="`wd-${idx}`" class="heatmap__weekday">{{ label }}</span>
+      <template v-for="week in weeks">
         <div
           v-for="cell in week"
           :key="cell.date"
@@ -91,7 +103,7 @@ function formatDateRu(dateStr: string): string {
           :class="`heatmap__cell--l${cell.level}`"
           @mouseenter="hoveredCell = cell"
         />
-      </div>
+      </template>
     </div>
 
     <div class="heatmap__footer">
@@ -104,21 +116,21 @@ function formatDateRu(dateStr: string): string {
             +{{ hoveredCell.data.wordsAdded }} / {{ hoveredCell.data.wordsReviewed }} сл.
           </template>
           <template v-else>
-            Нет активности
+            нет активности
           </template>
         </template>
         <template v-else>
-          Активность за последние 26 недель (наведите на ячейку)
+          Наведите на ячейку, чтобы увидеть детали дня
         </template>
       </div>
 
       <div class="heatmap__legend">
         <span>Меньше</span>
-        <span class="heatmap__cell heatmap__cell--l0" />
-        <span class="heatmap__cell heatmap__cell--l1" />
-        <span class="heatmap__cell heatmap__cell--l2" />
-        <span class="heatmap__cell heatmap__cell--l3" />
-        <span class="heatmap__cell heatmap__cell--l4" />
+        <span class="heatmap__legend-cell heatmap__cell--l0" />
+        <span class="heatmap__legend-cell heatmap__cell--l1" />
+        <span class="heatmap__legend-cell heatmap__cell--l2" />
+        <span class="heatmap__legend-cell heatmap__cell--l3" />
+        <span class="heatmap__legend-cell heatmap__cell--l4" />
         <span>Больше</span>
       </div>
     </div>
@@ -127,34 +139,52 @@ function formatDateRu(dateStr: string): string {
 
 <style scoped>
 .heatmap {
+  --heatmap-gap: 3px;
+  --heatmap-gutter: 24px;
+
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
+}
+
+.heatmap__months,
+.heatmap__grid {
+  display: grid;
+  gap: var(--heatmap-gap);
+}
+
+.heatmap__months {
+  grid-template-columns: var(--heatmap-gutter) repeat(var(--weeks), minmax(0, 1fr));
+  font-size: 11px;
+  color: var(--fg-secondary-color, #8e867b);
+}
+
+.heatmap__month {
+  white-space: nowrap;
+  overflow: visible;
 }
 
 .heatmap__grid {
-  display: flex;
-  gap: 3px;
-  overflow-x: auto;
-  padding-bottom: 4px;
+  grid-template-columns: var(--heatmap-gutter) repeat(var(--weeks), minmax(0, 1fr));
+  grid-template-rows: repeat(7, auto);
+  grid-auto-flow: column;
 }
 
-.heatmap__week {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+.heatmap__weekday {
+  align-self: center;
+  font-size: 10.5px;
+  color: var(--fg-secondary-color, #8e867b);
 }
 
 .heatmap__cell {
-  width: 12px;
-  height: 12px;
-  border-radius: 2.5px;
-  flex-shrink: 0;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 3px;
   transition: transform 0.1s;
 }
 
 .heatmap__grid .heatmap__cell:hover {
-  transform: scale(1.25);
+  transform: scale(1.2);
 }
 
 .heatmap__cell--l0 {
@@ -184,6 +214,7 @@ function formatDateRu(dateStr: string): string {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  margin-top: 4px;
   font-size: 11.5px;
   color: var(--fg-secondary-color, #8e867b);
 }
@@ -196,5 +227,11 @@ function formatDateRu(dateStr: string): string {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.heatmap__legend-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
 }
 </style>

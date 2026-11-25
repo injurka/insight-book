@@ -48,16 +48,36 @@ export function formatDuration(seconds: number | null | undefined): string {
   return `${hours} ч ${minutes} мин`
 }
 
+const SQLITE_DATETIME_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2})?$/
+
+/**
+ * Parses server timestamps. SQLite `datetime('now')` values carry no timezone and are UTC,
+ * while `new Date('YYYY-MM-DD HH:MM:SS')` would treat them as local time.
+ */
+export function parseServerDate(value: string | null | undefined): Date | null {
+  if (!value)
+    return null
+
+  const normalized = SQLITE_DATETIME_RE.test(value) ? `${value.replace(' ', 'T')}Z` : value
+  const parsed = new Date(normalized)
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+/**
+ * Formats server timestamp as a short local date (e.g. "13.05.2026").
+ */
+export function formatDate(value: string | null | undefined): string {
+  return parseServerDate(value)?.toLocaleDateString('ru-RU') ?? '—'
+}
+
 /**
  * Formats ISO/SQLite timestamp into a compact relative Russian label.
  */
 export function formatRelativeTime(value: string | null | undefined): string {
-  if (!value)
-    return 'Нет данных'
+  const parsed = parseServerDate(value)
 
-  const parsed = new Date(value)
-
-  if (Number.isNaN(parsed.getTime()))
+  if (!parsed)
     return 'Нет данных'
 
   const diffMs = Date.now() - parsed.getTime()
@@ -152,4 +172,23 @@ export const SEGMENT_META: Record<UserLifecycleSegment, SegmentMeta> = {
 
 export function getSegmentMeta(segment: UserLifecycleSegment): SegmentMeta {
   return SEGMENT_META[segment] ?? SEGMENT_META.never_activated
+}
+
+export type UsageLevel = 'ok' | 'warn' | 'danger'
+
+/**
+ * Share of a limit that is already used, in whole percent (0 for unlimited / empty limits).
+ */
+export function usagePercent(used: number, limit: number | null | undefined): number {
+  if (limit === null || limit === undefined || limit <= 0)
+    return 0
+
+  return Math.min(100, Math.round((used / limit) * 100))
+}
+
+export function getUsageLevel(percent: number): UsageLevel {
+  if (percent >= 100)
+    return 'danger'
+
+  return percent >= 80 ? 'warn' : 'ok'
 }

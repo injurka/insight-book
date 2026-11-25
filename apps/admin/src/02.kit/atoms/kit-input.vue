@@ -45,6 +45,13 @@ function onUpdate(val: string) {
   color: var(--fg-primary-color, #4a443c) !important;
 }
 
+.kit-input :deep(.v-field__input) {
+  padding: 8px 12px !important;
+  min-height: 40px !important;
+  border: none !important;
+  background: transparent !important;
+}
+
 .kit-input :deep(.v-field__outline__start),
 .kit-input :deep(.v-field__outline__end) {
   border-color: var(--border-secondary-color, #d9d1c7) !important;
