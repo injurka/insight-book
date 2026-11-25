@@ -91,8 +91,8 @@ export interface CanvasGraphLayout {
 const CLAUSE_Y = 64
 const CLAUSE_HEIGHT = 68
 const TOKEN_Y = 248
-const TOKEN_WIDTH = 158
-const TOKEN_HEIGHT = 114
+const TOKEN_WIDTH = 192
+const TOKEN_HEIGHT = 118
 const CHAR_Y = 448
 const CHAR_WIDTH = 116
 const CHAR_HEIGHT = 104

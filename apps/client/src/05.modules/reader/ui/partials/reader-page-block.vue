@@ -399,10 +399,12 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
     &.is-active {
       background-color: var(--fg-accent-color);
       color: var(--bg-primary-color);
-      font-weight: 600;
+      /* Faux-bold via stroke: font-weight changes glyph advance and shifts the line */
+      -webkit-text-stroke: 0.03em currentColor;
+      paint-order: stroke fill;
 
       &.add-space {
-        font-weight: inherit;
+        -webkit-text-stroke: 0;
       }
     }
   }

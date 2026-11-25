@@ -5,6 +5,7 @@ import { computed, onMounted, provide, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { loadLanguageAsync } from '~/00.plugins/i18n'
+import { useActivityHeartbeat } from '~/01.shared/composables/use-activity-heartbeat'
 import { useBackHandler } from '~/01.shared/composables/use-back-handler'
 import { useChangeTheme } from '~/01.shared/composables/use-change-theme'
 import { useCustomFonts } from '~/01.shared/composables/use-custom-fonts'
@@ -102,6 +103,7 @@ provide(TTS_BOOK_CONTEXT_KEY, () => readerStore.currentBook)
 
 useChangeTheme()
 useGlobalTracking()
+useActivityHeartbeat()
 useCustomFonts()
 useHead({
   title: titleChunk,

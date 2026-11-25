@@ -1,3 +1,4 @@
+import type { ActivitySection } from '../repositories/activity.repository'
 import type { IActivityRepository, IUserRepository } from '../repositories/interfaces'
 import { getAiConfig } from '~/utils/ai-config'
 import { ROLES } from '../constants/roles'
@@ -122,6 +123,15 @@ export class ActivityService {
 
   async trackActivity(userId: number, field: 'wordsAdded' | 'wordsReviewed' | 'pagesRead', increment: number = 1) {
     await this.activityRepo.incrementActivity(userId, field, increment)
+  }
+
+  async recordHeartbeat(userId: number, seconds: number, section: ActivitySection = 'other') {
+    if (!Number.isFinite(seconds) || seconds < 1)
+      return { ok: true }
+
+    await this.activityRepo.recordHeartbeat(userId, seconds, section)
+
+    return { ok: true }
   }
 }
 

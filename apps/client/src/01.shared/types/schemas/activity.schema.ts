@@ -39,5 +39,8 @@ export const ActivityTokensSchema = z.object({
   totalCost: z.number().default(0),
 })
 
+export const ActivitySectionSchema = z.enum(['reader', 'srs', 'library', 'other'])
+
+export type ActivitySection = z.infer<typeof ActivitySectionSchema>
 export type ActivityStatsDomain = z.infer<typeof ActivityStatsSchema>
 export type ActivityTokensDomain = z.infer<typeof ActivityTokensSchema>

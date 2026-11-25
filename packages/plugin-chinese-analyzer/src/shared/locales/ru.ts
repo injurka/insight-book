@@ -6,7 +6,7 @@ export default {
   inputLabel: 'Предложение',
   cachedDictionaryEntry: 'Из моего словаря',
   cachedEntryLoading: 'Ищем в словаре…',
-  cachedEntryEmpty: 'Ничего не найдено.',
+  cachedEntryEmpty: 'Этого слова пока нет в вашем словаре',
   cachedEntryUnavailable: 'Не удалось загрузить запись.',
   cachedReaderEntry: 'Из кэша читалки',
   audioUnavailable: 'Не удалось воспроизвести озвучку.',

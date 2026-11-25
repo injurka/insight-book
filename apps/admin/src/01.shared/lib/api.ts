@@ -1,4 +1,22 @@
-import type { CatalogPlugin, DashboardStats, LoginResponse, MeResponse, PaginatedResponse, PendingBook, PendingPlugin, PublicBook, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
+import type {
+  AdminAnalyticsOverview,
+  AdminUserDetailedAnalytics,
+  AdminUserSortBy,
+  CatalogPlugin,
+  DashboardStats,
+  LoginResponse,
+  MeResponse,
+  PaginatedResponse,
+  PendingBook,
+  PendingPlugin,
+  PublicBook,
+  SortDirection,
+  SubscriptionTier,
+  SubscriptionTierInput,
+  UserDetail,
+  UserLifecycleSegment,
+  UserRow,
+} from '~/01.shared/types/models'
 import { ofetch } from 'ofetch'
 
 import { API_URL } from '~/01.shared/lib/env'
@@ -76,11 +94,24 @@ export const api = {
     stats: () =>
       request<DashboardStats>('/api/admin/stats'),
 
-    listUsers: (opts: { page?: number, limit?: number, search?: string } = {}) =>
+    analyticsOverview: (days: number = 30) =>
+      request<AdminAnalyticsOverview>('/api/admin/analytics/overview', { query: { days } }),
+
+    listUsers: (opts: {
+      page?: number
+      limit?: number
+      search?: string
+      segment?: UserLifecycleSegment | 'all'
+      sortBy?: AdminUserSortBy
+      sortDir?: SortDirection
+    } = {}) =>
       request<PaginatedResponse<UserRow>>('/api/admin/users', { query: opts as Record<string, unknown> }),
 
     getUser: (id: number) =>
       request<UserDetail>(`/api/admin/users/${id}`),
+
+    getUserAnalytics: (id: number) =>
+      request<AdminUserDetailedAnalytics>(`/api/admin/users/${id}/analytics`),
 
     createUser: (data: {
       username: string

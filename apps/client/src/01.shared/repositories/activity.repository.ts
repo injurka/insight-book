@@ -1,4 +1,4 @@
-import type { ActivityStatsDomain, ActivityTokensDomain } from '~/01.shared/types/schemas/activity.schema'
+import type { ActivitySection, ActivityStatsDomain, ActivityTokensDomain } from '~/01.shared/types/schemas/activity.schema'
 import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
 import { ActivityStatsSchema, ActivityTokensSchema } from '~/01.shared/types/schemas/activity.schema'
@@ -6,6 +6,7 @@ import { ActivityStatsSchema, ActivityTokensSchema } from '~/01.shared/types/sch
 export interface IActivityRepository {
   getStats: () => Promise<ActivityStatsDomain>
   getTokens: (period: string) => Promise<ActivityTokensDomain>
+  sendHeartbeat: (seconds: number, section: ActivitySection, options?: { keepalive?: boolean }) => Promise<void>
 }
 
 export class DefaultActivityRepository implements IActivityRepository {
@@ -19,6 +20,10 @@ export class DefaultActivityRepository implements IActivityRepository {
     const raw = await api.activity.getTokens(period)
 
     return applyAcl(ActivityTokensSchema, raw, 'activity.getTokens()')
+  }
+
+  async sendHeartbeat(seconds: number, section: ActivitySection, options?: { keepalive?: boolean }): Promise<void> {
+    await api.activity.sendHeartbeat({ seconds, section }, options)
   }
 }
 

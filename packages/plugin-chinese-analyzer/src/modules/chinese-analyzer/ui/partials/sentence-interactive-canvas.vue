@@ -410,7 +410,7 @@ onMounted(() => {
             @click="onSelectToken(tNode.token)"
           >
             <div class="token-top-meta">
-              <span class="token-pos-tag">{{ tNode.token.posLabel }}</span>
+              <span class="token-pos-tag" :title="tNode.token.posLabel">{{ tNode.token.posLabel }}</span>
               <span class="token-hsk-tag">{{ tNode.token.hsk }}</span>
             </div>
 
@@ -426,7 +426,7 @@ onMounted(() => {
             </div>
 
             <div class="token-bottom-bar">
-              <span class="token-role-chip">{{ tNode.token.syntacticRole }}</span>
+              <span class="token-role-chip" :title="tNode.token.syntacticRole">{{ tNode.token.syntacticRole }}</span>
 
               <button
                 type="button"
@@ -1180,9 +1180,13 @@ onMounted(() => {
     font-size: 0.66rem;
     font-weight: 700;
     color: var(--fg-secondary-color);
-    white-space: nowrap;
+    min-width: 0;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .token-hsk-tag {
@@ -1238,9 +1242,13 @@ onMounted(() => {
   .token-role-chip {
     font-size: 0.62rem;
     color: var(--fg-tertiary-color);
-    white-space: nowrap;
+    min-width: 0;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .token-expand-btn {

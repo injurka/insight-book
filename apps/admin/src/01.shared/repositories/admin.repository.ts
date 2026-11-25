@@ -1,14 +1,41 @@
-import type { CatalogPlugin, DashboardStats, PaginatedResponse, PendingBook, PendingPlugin, PublicBook, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
+import type {
+  AdminAnalyticsOverview,
+  AdminUserDetailedAnalytics,
+  AdminUserSortBy,
+  CatalogPlugin,
+  DashboardStats,
+  PaginatedResponse,
+  PendingBook,
+  PendingPlugin,
+  PublicBook,
+  SortDirection,
+  SubscriptionTier,
+  SubscriptionTierInput,
+  UserDetail,
+  UserLifecycleSegment,
+  UserRow,
+} from '~/01.shared/types/models'
 import { api } from '~/01.shared/lib/api'
+
+export interface ListUsersQuery {
+  page?: number
+  limit?: number
+  search?: string
+  segment?: UserLifecycleSegment | 'all'
+  sortBy?: AdminUserSortBy
+  sortDir?: SortDirection
+}
 
 export interface IAdminRepository {
   stats: () => Promise<DashboardStats>
+  analyticsOverview: (days?: number) => Promise<AdminAnalyticsOverview>
   getSubscriptionTiers: () => Promise<SubscriptionTier[]>
   createSubscriptionTier: (data: SubscriptionTierInput) => Promise<SubscriptionTier>
   updateSubscriptionTier: (id: string, data: SubscriptionTierInput) => Promise<SubscriptionTier>
   deleteSubscriptionTier: (id: string) => Promise<{ success: boolean }>
-  listUsers: (opts?: { page?: number, limit?: number, search?: string }) => Promise<PaginatedResponse<UserRow>>
+  listUsers: (opts?: ListUsersQuery) => Promise<PaginatedResponse<UserRow>>
   getUser: (id: number) => Promise<UserDetail>
+  getUserAnalytics: (id: number) => Promise<AdminUserDetailedAnalytics>
   createUser: (data: { username: string, password: string, role?: string, email?: string | null, subscriptionTier?: string, tokenLimit?: number, bookLimit?: number }) => Promise<{ success: boolean, user: Record<string, unknown> }>
   updateUser: (id: number, data: Record<string, unknown>) => Promise<{ success: boolean, user: Record<string, unknown> | null }>
   deleteUser: (id: number) => Promise<{ success: boolean }>
@@ -25,12 +52,14 @@ export interface IAdminRepository {
 
 export class DefaultAdminRepository implements IAdminRepository {
   async stats() { return api.admin.stats() }
+  async analyticsOverview(days?: number) { return api.admin.analyticsOverview(days) }
   async getSubscriptionTiers() { return api.admin.getSubscriptionTiers() }
   async createSubscriptionTier(data: SubscriptionTierInput) { return api.admin.createSubscriptionTier(data) }
   async updateSubscriptionTier(id: string, data: SubscriptionTierInput) { return api.admin.updateSubscriptionTier(id, data) }
   async deleteSubscriptionTier(id: string) { return api.admin.deleteSubscriptionTier(id) }
-  async listUsers(opts?: { page?: number, limit?: number, search?: string }) { return api.admin.listUsers(opts) }
+  async listUsers(opts?: ListUsersQuery) { return api.admin.listUsers(opts) }
   async getUser(id: number) { return api.admin.getUser(id) }
+  async getUserAnalytics(id: number) { return api.admin.getUserAnalytics(id) }
   async createUser(data: Parameters<IAdminRepository['createUser']>[0]) { return api.admin.createUser(data) }
   async updateUser(id: number, data: Record<string, unknown>) { return api.admin.updateUser(id, data) }
   async deleteUser(id: number) { return api.admin.deleteUser(id) }

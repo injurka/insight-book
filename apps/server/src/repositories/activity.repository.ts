@@ -4,6 +4,8 @@ import { and, desc, eq, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
+export type ActivitySection = 'reader' | 'srs' | 'library' | 'other'
+
 export class ActivityRepository implements IActivityRepository {
   async getDailyActivityHeatmap(userId: number, sinceDateStr: string) {
     return await db
@@ -114,13 +116,54 @@ export class ActivityRepository implements IActivityRepository {
   }
 
   async incrementActivity(userId: number, field: 'wordsAdded' | 'wordsReviewed' | 'pagesRead', increment: number = 1) {
-    const today = new Date().toISOString().split('T')[0]
-    await db.insert(schema.dailyActivity)
-      .values({ userId, date: today, [field]: increment })
-      .onConflictDoUpdate({
-        target: [schema.dailyActivity.userId, schema.dailyActivity.date],
-        set: { [field]: sql`${schema.dailyActivity[field]} + ${increment}` },
-      })
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+
+    await Promise.all([
+      db.insert(schema.dailyActivity)
+        .values({ userId, date: today, [field]: increment })
+        .onConflictDoUpdate({
+          target: [schema.dailyActivity.userId, schema.dailyActivity.date],
+          set: { [field]: sql`${schema.dailyActivity[field]} + ${increment}` },
+        }),
+      db.update(schema.users)
+        .set({ lastActiveAt: now.toISOString() })
+        .where(eq(schema.users.id, userId)),
+    ])
+  }
+
+  async recordHeartbeat(userId: number, deltaSeconds: number, section: ActivitySection = 'other') {
+    const clampedSeconds = Math.max(1, Math.min(300, Math.round(deltaSeconds)))
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    const readingDelta = section === 'reader' ? clampedSeconds : 0
+    const srsDelta = section === 'srs' ? clampedSeconds : 0
+
+    await Promise.all([
+      db.insert(schema.dailyActivity)
+        .values({
+          userId,
+          date: today,
+          activeSeconds: clampedSeconds,
+          readingSeconds: readingDelta,
+          srsSeconds: srsDelta,
+        })
+        .onConflictDoUpdate({
+          target: [schema.dailyActivity.userId, schema.dailyActivity.date],
+          set: {
+            activeSeconds: sql`${schema.dailyActivity.activeSeconds} + ${clampedSeconds}`,
+            ...(readingDelta > 0
+              ? { readingSeconds: sql`${schema.dailyActivity.readingSeconds} + ${readingDelta}` }
+              : {}),
+            ...(srsDelta > 0
+              ? { srsSeconds: sql`${schema.dailyActivity.srsSeconds} + ${srsDelta}` }
+              : {}),
+          },
+        }),
+      db.update(schema.users)
+        .set({ lastActiveAt: now.toISOString() })
+        .where(eq(schema.users.id, userId)),
+    ])
   }
 }
 

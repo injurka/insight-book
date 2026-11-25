@@ -374,10 +374,11 @@ onUnmounted(() => {
         &.is-active {
           background-color: var(--fg-accent-color);
           color: var(--bg-primary-color);
-          font-weight: 600;
+          -webkit-text-stroke: 0.03em currentColor;
+          paint-order: stroke fill;
 
           &.add-space {
-            font-weight: inherit;
+            -webkit-text-stroke: 0;
           }
         }
       }
@@ -509,7 +510,8 @@ onUnmounted(() => {
         &.is-active {
           background-color: var(--fg-accent-color);
           color: var(--bg-primary-color);
-          font-weight: bold;
+          -webkit-text-stroke: 0.03em currentColor;
+          paint-order: stroke fill;
           text-shadow: none;
         }
       }

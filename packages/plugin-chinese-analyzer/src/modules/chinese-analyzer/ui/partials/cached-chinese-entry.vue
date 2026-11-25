@@ -12,18 +12,18 @@ interface Props {
 }
 
 type LookupState
-  = | { kind: 'loading' | 'empty' | 'unavailable' }
+  = | { kind: 'idle' | 'loading' | 'empty' | 'unavailable' }
     | { kind: 'found', entry: CachedChineseEntry }
 
 const props = defineProps<Props>()
 
 const { locale, t } = useI18n()
 
-const lookup = shallowRef<LookupState>({ kind: 'empty' })
+const lookup = shallowRef<LookupState>({ kind: 'idle' })
 
 watch([() => props.text.trim(), locale], ([text, language], _, onCleanup) => {
   if (!text || text.length > 100 || detectInputLanguage(text) !== 'zh') {
-    lookup.value = { kind: 'empty' }
+    lookup.value = { kind: 'idle' }
 
     return
   }
@@ -73,11 +73,16 @@ function plainDictionaryTranslation(translation: string): string {
 </script>
 
 <template>
-  <aside class="cached-chinese-entry" :class="{ compact: props.compact }">
-    <div class="cache-source">
+  <aside v-if="lookup.kind !== 'idle'" class="cached-chinese-entry" :class="{ compact: props.compact, muted: lookup.kind === 'empty' || lookup.kind === 'unavailable' }">
+    <div v-if="!(lookup.kind === 'empty' || lookup.kind === 'unavailable')" class="cache-source">
       {{ t(lookup.kind === 'found' && lookup.entry.source === 'reader' ? 'plugins.chinese-analyzer.cachedReaderEntry' : 'plugins.chinese-analyzer.cachedDictionaryEntry') }}
     </div>
-    <div class="cache-content" role="status" :tabindex="lookup.kind === 'found' ? 0 : undefined">
+    <div
+      class="cache-content"
+      :class="{ 'is-found': lookup.kind === 'found' }"
+      role="status"
+      :tabindex="lookup.kind === 'found' ? 0 : undefined"
+    >
       <template v-if="lookup.kind === 'found'">
         <span v-if="lookup.entry.transcription" class="cache-pinyin">{{ lookup.entry.transcription }}</span>
         <span v-if="lookup.entry.translation">{{ lookup.entry.translation }}</span>
@@ -104,6 +109,16 @@ function plainDictionaryTranslation(translation: string): string {
   background: var(--bg-primary-color);
   overflow-wrap: anywhere;
 
+  &.muted {
+    padding-block: 6px;
+    background: transparent;
+    border-inline-start-color: transparent;
+  }
+
+  &.compact.muted {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   &.compact {
     grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr);
     align-items: start;
@@ -120,10 +135,17 @@ function plainDictionaryTranslation(translation: string): string {
   font-size: 0.75rem;
 }
 .cache-content {
-  block-size: 2.9em;
-  overflow-y: auto;
   font-size: 0.875rem;
   line-height: 1.45;
+}
+.cache-content.is-found {
+  block-size: 2.9em;
+  overflow-y: auto;
+}
+.cache-message {
+  font-size: 0.8125rem;
+  font-style: italic;
+  opacity: 0.8;
 }
 .cache-pinyin {
   margin-inline-end: 0.75em;

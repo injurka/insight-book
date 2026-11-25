@@ -1,5 +1,7 @@
 import type { CatalogPluginStatus } from '../constants/catalog-plugin'
+import type { AdminUserSortBy, SortDirection, UserLifecycleSegment } from '../types/admin-analytics'
 import { Elysia, t } from 'elysia'
+import { adminAnalyticsService } from '../services/admin-analytics.service'
 import { adminService } from '../services/admin.service'
 import { subscriptionTierService } from '../services/subscription-tier.service'
 import { authPlugin } from '../utils/auth'
@@ -71,18 +73,53 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
     return adminService.getStats(userId)
   })
 
+  .get('/analytics/overview', async ({ userId, query }) => {
+    return adminAnalyticsService.getOverview(userId, query.days ? Number(query.days) : 30)
+  }, {
+    query: t.Object({
+      days: t.Optional(t.Numeric()),
+    }),
+  })
+
   .get('/users', async ({ userId, query }) => {
-    return adminService.listUsers(userId, {
+    return adminAnalyticsService.listUsersWithAnalytics(userId, {
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 20,
       search: query.search as string | undefined,
+      segment: query.segment as UserLifecycleSegment | 'all' | undefined,
+      sortBy: query.sortBy as AdminUserSortBy | undefined,
+      sortDir: query.sortDir as SortDirection | undefined,
     })
   }, {
     query: t.Object({
       page: t.Optional(t.Numeric()),
       limit: t.Optional(t.Numeric()),
       search: t.Optional(t.String()),
+      segment: t.Optional(t.Union([
+        t.Literal('all'),
+        t.Literal('active'),
+        t.Literal('cooling'),
+        t.Literal('inactive'),
+        t.Literal('never_activated'),
+      ])),
+      sortBy: t.Optional(t.Union([
+        t.Literal('createdAt'),
+        t.Literal('lastActiveAt'),
+        t.Literal('activeSeconds'),
+        t.Literal('pagesRead'),
+        t.Literal('usedTokens'),
+      ])),
+      sortDir: t.Optional(t.Union([
+        t.Literal('asc'),
+        t.Literal('desc'),
+      ])),
     }),
+  })
+
+  .get('/users/:id/analytics', async ({ userId, params }) => {
+    return adminAnalyticsService.getUserDetailedAnalytics(userId, Number(params.id))
+  }, {
+    params: t.Object({ id: t.Numeric() }),
   })
 
   .get('/users/:id', async ({ userId, params }) => {

@@ -34,6 +34,7 @@ export const users = sqliteTable('users', {
   periodStart: text('periodStart').notNull().default(sql`(datetime('now'))`),
 
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+  lastActiveAt: text('lastActiveAt'),
 
   // PUSH-уведомления
   pushTargetDeckId: integer('pushTargetDeckId'),
@@ -337,6 +338,9 @@ export const dailyActivity = sqliteTable('daily_activity', {
   wordsAdded: integer('wordsAdded').notNull().default(0),
   wordsReviewed: integer('wordsReviewed').notNull().default(0),
   pagesRead: integer('pagesRead').notNull().default(0),
+  activeSeconds: integer('activeSeconds').notNull().default(0),
+  readingSeconds: integer('readingSeconds').notNull().default(0),
+  srsSeconds: integer('srsSeconds').notNull().default(0),
 }, t => [
   unique().on(t.userId, t.date),
 ])

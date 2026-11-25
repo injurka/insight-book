@@ -60,3 +60,17 @@ export const activityRouter = new Elysia({ prefix: '/api/activity' })
       period: t.Optional(t.String()),
     }),
   })
+  .post('/heartbeat', async ({ userId, body }) => {
+    return await activityService.recordHeartbeat(userId!, body.seconds, body.section)
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      seconds: t.Number({ minimum: 1, maximum: 300 }),
+      section: t.Optional(t.Union([
+        t.Literal('reader'),
+        t.Literal('srs'),
+        t.Literal('library'),
+        t.Literal('other'),
+      ])),
+    }),
+  })

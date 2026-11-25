@@ -737,6 +737,15 @@ export const api = {
       }[]
       totalCost: number | null
     }>(`/api/activity/tokens${period ? `?period=${period}` : ''}`),
+    sendHeartbeat: async (payload: { seconds: number, section: 'reader' | 'srs' | 'library' | 'other' }, options?: { keepalive?: boolean }) => request<{ ok: boolean }>('/api/activity/heartbeat', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      silentErrors: true,
+      telemetryExpected: true,
+      telemetryFeature: 'activity_heartbeat',
+      keepalive: options?.keepalive,
+    }),
   },
 
   quiz: {
