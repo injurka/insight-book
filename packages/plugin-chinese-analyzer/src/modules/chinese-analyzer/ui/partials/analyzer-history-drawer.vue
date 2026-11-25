@@ -52,10 +52,20 @@ function onSelectItem(item: AnalysisHistoryItem): void {
             :class="{ active: item.hanzi === props.activeHanzi }"
             @click="onSelectItem(item)"
           >
+            <div class="hi-actions">
+              <span v-if="item.hskLevel" class="hi-hsk">{{ item.hskLevel }}</span>
+              <button
+                type="button"
+                class="hi-delete-btn"
+                @click.stop="emit('remove', item.id)"
+              >
+                <Icon icon="mdi:delete-outline" />
+              </button>
+            </div>
+
             <div class="hi-content">
-              <div class="hi-top">
-                <span class="hi-hsk">{{ item.hskLevel }}</span>
-                <span class="hi-hanzi">{{ item.hanzi }}</span>
+              <div class="hi-hanzi">
+                {{ item.hanzi }}
               </div>
               <div class="hi-pinyin">
                 {{ item.pinyin }}
@@ -64,14 +74,6 @@ function onSelectItem(item: AnalysisHistoryItem): void {
                 {{ item.translation }}
               </div>
             </div>
-
-            <button
-              type="button"
-              class="hi-delete-btn"
-              @click.stop="emit('remove', item.id)"
-            >
-              <Icon icon="mdi:delete-outline" />
-            </button>
           </div>
         </div>
 
@@ -128,10 +130,9 @@ function onSelectItem(item: AnalysisHistoryItem): void {
 
 .history-item-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 14px 12px;
   border-radius: 13px;
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
@@ -152,11 +153,13 @@ function onSelectItem(item: AnalysisHistoryItem): void {
     flex-direction: column;
     gap: 3px;
     min-width: 0;
+    overflow-wrap: anywhere;
   }
 
-  .hi-top {
+  .hi-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
   }
 
@@ -165,6 +168,7 @@ function onSelectItem(item: AnalysisHistoryItem): void {
     border-radius: 6px;
     font-size: 0.68rem;
     font-weight: 700;
+    white-space: nowrap;
     background: rgba(var(--fg-accent-color-rgb), 0.14);
     color: var(--fg-accent-color);
   }

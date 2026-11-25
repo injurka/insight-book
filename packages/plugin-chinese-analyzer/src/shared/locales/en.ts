@@ -32,6 +32,7 @@ export default {
   voiceErrorMicNotFound: 'Microphone not found or unavailable.',
   voiceErrorTranscribe: 'Could not transcribe speech. Please try speaking clearly.',
   listenSentence: 'Listen to sentence',
+  listenWord: 'Play word pronunciation',
   copySentence: 'Copy',
   copied: 'Copied',
   sentenceAll: 'All',

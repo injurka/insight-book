@@ -32,6 +32,7 @@ export default {
   voiceErrorMicNotFound: 'Микрофон не найден или недоступен.',
   voiceErrorTranscribe: 'Не удалось распознать речь. Попробуйте сказать чуть громче.',
   listenSentence: 'Озвучить предложение',
+  listenWord: 'Озвучить слово',
   copySentence: 'Копировать',
   copied: 'Скопировано',
   sentenceAll: 'Все',

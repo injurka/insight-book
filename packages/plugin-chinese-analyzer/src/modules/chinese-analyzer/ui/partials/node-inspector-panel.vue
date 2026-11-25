@@ -7,7 +7,7 @@ import type {
 } from '../../model'
 import { Icon } from '@iconify/vue'
 import HanziWriter from 'hanzi-writer'
-import { computed, nextTick, onMounted, shallowRef, useTemplateRef, watch } from 'vue'
+import { computed, shallowRef, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getPosClass, getToneBadgeLabel } from '../../../../shared/lib/tone-utils'
 import CachedChineseEntry from './cached-chinese-entry.vue'
@@ -45,10 +45,7 @@ const activeCharacterSymbol = computed(() => {
   return null
 })
 
-watch(activeCharacterSymbol, async () => {
-  await nextTick()
-  mountHanziWriter()
-})
+watch([activeCharacterSymbol, hanziBoxEl], mountHanziWriter, { flush: 'post' })
 
 function mountHanziWriter(): void {
   const container = hanziBoxEl.value
@@ -123,10 +120,6 @@ function selectComponent(token: LexemeToken, character: CharacterNode, component
 function getClauseTokens(tokenIds: string[]): LexemeToken[] {
   return props.allTokens.filter(tok => tokenIds.includes(tok.id))
 }
-
-onMounted(() => {
-  mountHanziWriter()
-})
 </script>
 
 <template>
@@ -215,48 +208,46 @@ onMounted(() => {
         <div class="hero-main-left">
           <div class="hero-badges">
             <span class="pos-pill">{{ props.selectedNode.token.posLabel }}</span>
-            <span class="hsk-pill">{{ props.selectedNode.token.hsk }}</span>
-          </div>
-          <div class="hero-pinyin">
-            {{ props.selectedNode.token.pinyin }}
+            <span v-if="props.selectedNode.token.hsk" class="hsk-pill">{{ props.selectedNode.token.hsk }}</span>
           </div>
           <div class="hero-hanzi">
             {{ props.selectedNode.token.hanzi }}
           </div>
+          <div class="hero-pinyin">
+            {{ props.selectedNode.token.pinyin }}
+          </div>
           <div class="hero-meaning">
             {{ props.selectedNode.token.meaning }}
           </div>
-        </div>
 
-        <div class="hero-actions-right">
-          <div
-            v-if="props.selectedNode.token.characters.length === 1"
-            class="mini-stroke-card"
-          >
-            <div ref="hanziBoxRef" class="hanzi-writer-slot" />
-            <button type="button" class="stroke-play-btn" @click="animateStrokes">
-              <Icon icon="mdi:brush-variant" />
-              <span>{{ t('plugins.chinese-analyzer.animateStrokes') }}</span>
-            </button>
-          </div>
-
-          <div class="hero-btn-stack">
+          <div class="hero-word-actions">
             <button
               type="button"
               class="inspector-action-btn"
+              :aria-label="t('plugins.chinese-analyzer.listenWord')"
+              :title="t('plugins.chinese-analyzer.listenWord')"
               @click="emit('speak', props.selectedNode.token.hanzi)"
             >
-              <Icon icon="mdi:volume-high" />
+              <Icon icon="mdi:volume-high" aria-hidden="true" />
             </button>
             <button
               type="button"
               class="inspector-action-btn"
+              :aria-label="t('plugins.chinese-analyzer.analyzeThisWord')"
               :title="t('plugins.chinese-analyzer.analyzeThisWord')"
               @click="emit('analyzeQuery', props.selectedNode.token.hanzi)"
             >
-              <Icon icon="mdi:auto-fix" />
+              <Icon icon="mdi:auto-fix" aria-hidden="true" />
             </button>
           </div>
+        </div>
+
+        <div v-if="props.selectedNode.token.characters.length === 1" class="mini-stroke-card">
+          <div ref="hanziBoxRef" class="hanzi-writer-slot" />
+          <button type="button" class="stroke-play-btn" @click="animateStrokes">
+            <Icon icon="mdi:brush-variant" aria-hidden="true" />
+            <span>{{ t('plugins.chinese-analyzer.animateStrokes') }}</span>
+          </button>
         </div>
       </div>
 
@@ -356,11 +347,11 @@ onMounted(() => {
               {{ props.selectedNode.character.structureType }}
             </span>
           </div>
-          <div class="hero-pinyin">
-            {{ props.selectedNode.character.pinyin }}
-          </div>
           <div class="hero-hanzi">
             {{ props.selectedNode.character.char }}
+          </div>
+          <div class="hero-pinyin">
+            {{ props.selectedNode.character.pinyin }}
           </div>
           <div class="hero-meaning">
             {{ props.selectedNode.character.meaning }}
@@ -575,6 +566,12 @@ onMounted(() => {
     background: var(--bg-secondary-color);
   }
 
+  &.token-hero,
+  &.char-hero {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
   &.clause-hero,
   &.comp-hero {
     flex-direction: column;
@@ -610,9 +607,11 @@ onMounted(() => {
 
 .hero-main-left {
   display: flex;
+  flex: 1 1 112px;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .hero-badges {
@@ -631,6 +630,7 @@ onMounted(() => {
   }
 
   .hsk-pill {
+    white-space: nowrap;
     padding: 2px 8px;
     border-radius: 6px;
     font-size: 0.7rem;
@@ -667,25 +667,19 @@ onMounted(() => {
   }
 }
 
-.hero-actions-right {
+.hero-word-actions {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.hero-btn-stack {
-  display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 8px;
+  margin-top: 4px;
 }
 
 .inspector-action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   border: 1px solid var(--border-secondary-color);
   background: var(--bg-secondary-color);
@@ -704,16 +698,16 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 0 0 112px;
   gap: 6px;
-  padding: 8px;
-  border-radius: 12px;
-  background: var(--bg-secondary-color);
-  border: 1px solid var(--border-secondary-color);
+  margin-inline-start: auto;
 
   .hanzi-writer-slot {
     width: 96px;
     height: 96px;
-    border-radius: 8px;
+    border: 1px solid var(--border-secondary-color);
+    border-radius: 10px;
+    overflow: hidden;
     background:
       linear-gradient(to right, transparent 49%, rgba(150, 150, 150, 0.18) 50%, transparent 51%),
       linear-gradient(to bottom, transparent 49%, rgba(150, 150, 150, 0.18) 50%, transparent 51%),
@@ -724,8 +718,10 @@ onMounted(() => {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 8px;
-    border-radius: 7px;
+    justify-content: center;
+    min-height: 32px;
+    padding: 4px 6px;
+    border-radius: 8px;
     border: none;
     background: rgba(var(--fg-accent-color-rgb), 0.14);
     color: var(--fg-accent-color);

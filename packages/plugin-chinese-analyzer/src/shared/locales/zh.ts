@@ -32,6 +32,7 @@ export default {
   voiceErrorMicNotFound: '未找到可用的麦克风设备。',
   voiceErrorTranscribe: '语音识别失败，请清晰发言后重试。',
   listenSentence: '朗读整句',
+  listenWord: '播放词语读音',
   copySentence: '复制',
   copied: '已复制',
   sentenceAll: '全部',
