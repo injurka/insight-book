@@ -395,6 +395,8 @@
     "fetchModelsTooltip": "加载模型列表",
     "actions": {
       "analyze_sentence": "句子翻译（手动）",
+      "chinese_sentence_deep_analyze": "中文句子解析",
+      "russian_sentence_deep_analyze": "俄语句子解析",
       "analyze_batch": "批量分析（离线同步）",
       "analyze_book": "书籍分析（流派、标签）",
       "analyze_manga": "漫画分析（流派、标签）",

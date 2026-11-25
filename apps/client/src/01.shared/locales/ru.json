@@ -396,6 +396,8 @@
     "fetchModelsTooltip": "Загрузить список моделей",
     "actions": {
       "analyze_sentence": "Перевод предложений (Ручной)",
+      "chinese_sentence_deep_analyze": "Разбор китайского предложения",
+      "russian_sentence_deep_analyze": "Разбор русского предложения",
       "analyze_batch": "Пакетный анализ (Оффлайн-синхронизация)",
       "analyze_book": "Анализ книги (Жанры, Теги)",
       "analyze_manga": "Анализ манги (Жанры, Теги)",

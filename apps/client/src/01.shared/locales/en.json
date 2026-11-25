@@ -396,6 +396,8 @@
     "fetchModelsTooltip": "Load models list",
     "actions": {
       "analyze_sentence": "Sentence Translation (Manual)",
+      "chinese_sentence_deep_analyze": "Chinese Sentence Analysis",
+      "russian_sentence_deep_analyze": "Russian Sentence Analysis",
       "analyze_batch": "Batch Analysis (Offline sync)",
       "analyze_book": "Book Analysis (Genres, Tags)",
       "analyze_manga": "Manga Analysis (Genres, Tags)",
