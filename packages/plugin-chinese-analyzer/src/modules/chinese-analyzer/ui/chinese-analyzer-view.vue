@@ -117,7 +117,7 @@ onUnmounted(() => {
       @analyze="analyzeAndScroll"
     />
 
-    <CachedChineseEntry v-if="props.initialSentence === undefined" :text="cachePreviewText" />
+    <CachedChineseEntry v-if="props.initialSentence === undefined && cachePreviewText" :text="cachePreviewText" />
 
     <KitActivityLoader
       v-if="analyzer.isAnalyzing.value"
