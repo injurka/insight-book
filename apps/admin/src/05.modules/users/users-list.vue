@@ -375,7 +375,8 @@ onMounted(() => load())
     border-color 0.15s;
 }
 
-.users-list__pill:hover {
+.users-list__pill:hover:not(.users-list__pill--active) {
+  background: var(--bg-hover-color, #d9d1c7);
   color: var(--fg-primary-color, #4a443c);
   border-color: var(--border-primary-color, #c7c0b6);
 }
@@ -385,6 +386,12 @@ onMounted(() => load())
   border-color: var(--fg-accent-color, #4b8266);
   color: #f3efe9;
   font-weight: 600;
+}
+
+.users-list__pill--active:hover {
+  background: var(--bg-action-hover-color, #5a9c7b);
+  border-color: var(--bg-action-hover-color, #5a9c7b);
+  color: #f3efe9;
 }
 
 .users-list__controls {

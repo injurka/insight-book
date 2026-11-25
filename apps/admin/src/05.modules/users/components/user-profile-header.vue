@@ -3,7 +3,7 @@ import type { SubscriptionTier } from '~/01.shared/types/models'
 import type { AdminUserDetailedAnalytics, UserDetail } from '~/03.domain/user'
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
-import { BASE_API_URL } from '~/01.shared/lib/api'
+import { resolveMediaUrl } from '~/01.shared/lib/api'
 import KitBadge from '~/02.kit/atoms/kit-badge.vue'
 import { formatDate, getSegmentMeta } from '~/03.domain/user'
 import { buildUserMetricTiles } from '../lib/build-metric-tiles'
@@ -23,12 +23,10 @@ watch(() => props.user.avatarUrl, () => {
 })
 
 const avatarSrc = computed(() => {
-  const url = props.user.avatarUrl
-
-  if (!url || avatarFailed.value)
+  if (avatarFailed.value)
     return null
 
-  return url.startsWith('/') ? `${BASE_API_URL}${url}` : url
+  return resolveMediaUrl(props.user.avatarUrl)
 })
 
 const tierName = computed(() => {

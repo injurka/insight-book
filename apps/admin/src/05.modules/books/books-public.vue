@@ -3,6 +3,7 @@ import type { PublicBook } from '~/03.domain/book'
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
+import { resolveMediaUrl } from '~/01.shared/lib/api'
 import KitBadge from '~/02.kit/atoms/kit-badge.vue'
 import KitBtn from '~/02.kit/atoms/kit-btn.vue'
 import KitInput from '~/02.kit/atoms/kit-input.vue'
@@ -22,10 +23,25 @@ const error = ref('')
 const actionMsg = ref('')
 const deletingId = ref<number | null>(null)
 const updatingId = ref<number | null>(null)
+const failedCovers = ref<Set<number>>(new Set())
+
+function getBookCoverSrc(book: PublicBook): string | null {
+  if (failedCovers.value.has(book.id))
+    return null
+
+  return resolveMediaUrl(book.coverUrl)
+}
+
+function markCoverFailed(bookId: number) {
+  const next = new Set(failedCovers.value)
+  next.add(bookId)
+  failedCovers.value = next
+}
 
 async function load() {
   loading.value = true
   error.value = ''
+  failedCovers.value = new Set()
   try {
     const res = await admin.listPublicBooks({ page: page.value, limit, search: search.value.trim() || undefined })
     books.value = res.data
@@ -179,11 +195,12 @@ onMounted(() => load())
             <div class="public-books__title-cell">
               <div class="public-books__cover-wrapper">
                 <img
-                  v-if="book.coverUrl"
-                  :src="book.coverUrl"
+                  v-if="getBookCoverSrc(book)"
+                  :src="getBookCoverSrc(book)!"
                   :alt="book.title"
                   class="public-books__cover"
                   loading="lazy"
+                  @error="markCoverFailed(book.id)"
                 >
                 <div v-else class="public-books__cover-placeholder">
                   <Icon icon="mdi:book-outline" />

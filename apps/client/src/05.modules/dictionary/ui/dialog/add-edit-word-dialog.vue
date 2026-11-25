@@ -420,11 +420,10 @@ async function autoFillWithAI() {
           <KitBtn
             variant="outlined"
             color="secondary"
-            prepend-icon="mdi:delete-outline"
+            icon="mdi:delete-outline"
+            :aria-label="t('dictionary.deleteItem')"
             @click="handleDelete"
-          >
-            <span class="hide-mobile">{{ t('dictionary.deleteItem') }}</span>
-          </KitBtn>
+          />
         </KitTooltip>
         <div class="spacer" />
         <KitBtn variant="tonal" @click="analysisStore.addEditWordModalOpen = false">
@@ -652,6 +651,7 @@ async function autoFillWithAI() {
 }
 .footer-actions {
   display: flex;
+  align-items: center;
   width: 100%;
   gap: 8px;
   .spacer {

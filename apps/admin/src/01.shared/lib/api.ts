@@ -23,6 +23,18 @@ import { API_URL } from '~/01.shared/lib/env'
 
 export const BASE_API_URL = API_URL
 
+export function resolveMediaUrl(url?: string | null): string | null {
+  if (!url)
+    return null
+
+  if (/^(?:https?:|data:|blob:)/i.test(url))
+    return url
+
+  const cleanPath = url.startsWith('/') ? url : `/${url}`
+
+  return `${BASE_API_URL.replace(/\/$/, '')}${cleanPath}`
+}
+
 // -- providers (внедряются через configureApi) --
 
 export interface ApiProviders {

@@ -191,7 +191,7 @@ onMounted(() => load())
     color 0.15s;
 }
 
-.period-switch__btn:hover {
+.period-switch__btn:hover:not(.period-switch__btn--active) {
   color: var(--fg-primary-color, #4a443c);
 }
 
@@ -199,6 +199,11 @@ onMounted(() => load())
   background: var(--fg-accent-color, #4b8266);
   color: #f3efe9;
   font-weight: 600;
+}
+
+.period-switch__btn--active:hover {
+  background: var(--bg-action-hover-color, #5a9c7b);
+  color: #f3efe9;
 }
 
 .analytics-page__grid-two {

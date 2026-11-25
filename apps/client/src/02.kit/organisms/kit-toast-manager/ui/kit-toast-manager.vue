@@ -49,18 +49,17 @@ const { remove } = toastStore
 .kit-toast-fade-move,
 .kit-toast-fade-enter-active,
 .kit-toast-fade-leave-active {
-  transition: all 0.4s cubic-bezier(0.55, 0, 0.1, 1);
+  transition: all 0.26s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .kit-toast-fade-enter-from,
 .kit-toast-fade-leave-to {
   opacity: 0;
-  transform: scale(0.8) translateX(30px);
+  transform: translateY(8px) scale(0.96);
 }
 
 .kit-toast-fade-leave-active {
   position: absolute;
   right: 0;
-  width: 100%;
 }
 </style>

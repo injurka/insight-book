@@ -12,7 +12,7 @@ const emit = defineEmits<{
   (e: 'remove'): void
 }>()
 
-const toastEl = ref<HTMLElement | null>(null)
+const toastEl = useTemplateRef<HTMLElement>('toastEl')
 
 const { isSwiping, direction, lengthX } = useSwipe(toastEl, {
   threshold: 60,
@@ -25,14 +25,13 @@ const { isSwiping, direction, lengthX } = useSwipe(toastEl, {
 })
 
 const TOAST_ICONS: Record<ToastMessage['type'], string> = {
-  success: 'mdi:bookmark-check-outline',
-  error: 'mdi:book-alert-outline',
-  warn: 'mdi:bookmark-remove-outline',
-  info: 'mdi:book-open-page-variant-outline',
+  success: 'mdi:check-circle-outline',
+  error: 'mdi:alert-octagon-outline',
+  warn: 'mdi:alert-circle-outline',
+  info: 'mdi:information-outline',
 }
 
 const icon = computed(() => TOAST_ICONS[props.message.type] ?? TOAST_ICONS.info)
-const progressStyle = computed(() => ({ animationDuration: `${props.message.expire}ms` }))
 
 const itemClass = computed(() => `kit-toast-item kit-toast-item--${props.message.type}`)
 const swipeStyle = computed(() => {
@@ -63,23 +62,30 @@ function handleAction() {
     role="alert"
     class="kit-toast-item"
   >
-    <span class="kit-toast-item-ribbon" aria-hidden="true">
-      <Icon :icon="icon" class="ribbon-icon" />
+    <span class="kit-toast-item-icon" aria-hidden="true">
+      <Icon :icon="icon" class="toast-icon-svg" />
     </span>
     <div class="kit-toast-item-detail">
       <div class="detail-text">
         {{ message.detail }}
       </div>
-      <button v-if="message.action" class="action-btn" @click.stop="handleAction">
+      <button
+        v-if="message.action"
+        type="button"
+        class="action-btn"
+        @click.stop="handleAction"
+      >
         {{ message.action.label }}
       </button>
     </div>
-    <span
-      v-if="message.expire > 0"
-      class="kit-toast-item-progress"
-      :style="progressStyle"
-      aria-hidden="true"
-    />
+    <button
+      type="button"
+      class="kit-toast-item-close"
+      aria-label="Close"
+      @click.stop="emit('remove')"
+    >
+      <Icon icon="mdi:close" />
+    </button>
   </div>
 </template>
 
@@ -88,127 +94,116 @@ function handleAction() {
   --toast-accent: var(--fg-accent-color);
 
   position: relative;
-  width: 100%;
+  width: fit-content;
+  min-width: 240px;
   max-width: 350px;
-  min-width: 300px;
-  padding: 14px 16px 14px 58px;
-  overflow: hidden;
+  padding: 10px 10px 10px 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   pointer-events: all;
   cursor: grab;
   user-select: none;
   touch-action: none;
   font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 500;
-  line-height: 1.45;
   color: var(--fg-primary-color);
-  /* Paper sheet: soft page gradient + faint ruled lines */
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 23px,
-      color-mix(in srgb, var(--border-secondary-color) 45%, transparent) 23px,
-      color-mix(in srgb, var(--border-secondary-color) 45%, transparent) 24px
-    ),
-    linear-gradient(
-      100deg,
-      color-mix(in srgb, var(--toast-accent) 7%, var(--bg-secondary-color)) 0%,
-      var(--bg-secondary-color) 45%
-    );
-  border: 1px solid var(--border-primary-color);
-  border-radius: 4px 12px 12px 4px;
+  background: color-mix(in srgb, var(--bg-primary-color) 92%, var(--bg-secondary-color));
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--toast-accent) 24%, var(--border-primary-color));
+  border-radius: 12px;
   box-shadow:
-    inset 3px 0 0 color-mix(in srgb, var(--toast-accent) 18%, transparent),
-    0 1px 0 color-mix(in srgb, var(--border-primary-color) 60%, transparent),
-    0 10px 24px -12px rgba(60, 40, 20, 0.35);
+    0 10px 26px -8px rgba(0, 0, 0, 0.16),
+    0 2px 6px -1px rgba(0, 0, 0, 0.06);
   transform-origin: right center;
 
   @include media-down(sm) {
+    width: 100%;
     min-width: 0;
+    max-width: none;
   }
 
   &:active {
     cursor: grabbing;
   }
 
-  /* Bookmark ribbon hanging from the top edge */
-  &-ribbon {
-    position: absolute;
-    top: -1px;
-    left: 14px;
-    width: 30px;
-    height: calc(100% - 10px);
-    min-height: 40px;
-    max-height: 52px;
-    display: flex;
-    align-items: flex-start;
+  &-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    padding-top: 8px;
-    background: linear-gradient(
-      to right,
-      color-mix(in srgb, var(--toast-accent) 85%, black) 0%,
-      var(--toast-accent) 30%,
-      color-mix(in srgb, var(--toast-accent) 88%, white) 100%
-    );
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 9px), 0 100%);
-    color: var(--bg-secondary-color);
-    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.15));
+    background: color-mix(in srgb, var(--toast-accent) 13%, transparent);
+    color: var(--toast-accent);
 
-    .ribbon-icon {
-      width: 16px;
-      height: 16px;
+    .toast-icon-svg {
+      width: 18px;
+      height: 18px;
     }
   }
 
   &-detail {
-    flex-grow: 1;
+    flex: 1 1 auto;
     min-width: 0;
     text-align: left;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 
     .detail-text {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
+      font-weight: 500;
+      line-height: 1.4;
       word-break: break-word;
-      font-family: 'Maple Mono CN', monospace;
     }
   }
 
-  /* Reading progress: thin line at the page bottom showing time left */
-  &-progress {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 2px;
-    background: var(--toast-accent);
-    opacity: 0.55;
-    transform-origin: left center;
-    animation-name: kit-toast-progress;
-    animation-timing-function: linear;
-    animation-fill-mode: forwards;
+  &-close {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--fg-tertiary-color);
+    opacity: 0.7;
+    cursor: pointer;
+    transition:
+      opacity 0.15s ease,
+      color 0.15s ease,
+      background-color 0.15s ease;
+
+    &:hover {
+      opacity: 1;
+      color: var(--fg-primary-color);
+      background: color-mix(in srgb, var(--fg-primary-color) 8%, transparent);
+    }
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
   }
 
   .action-btn {
     align-self: flex-start;
-    padding: 3px 12px;
-    border: 1px solid color-mix(in srgb, var(--toast-accent) 55%, transparent);
-    border-radius: 999px;
+    padding: 3px 10px;
+    border: 1px solid color-mix(in srgb, var(--toast-accent) 35%, transparent);
+    border-radius: 6px;
     background: color-mix(in srgb, var(--toast-accent) 10%, transparent);
     color: var(--toast-accent);
     font-family: inherit;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background-color 0.15s ease;
 
     &:hover {
-      background: color-mix(in srgb, var(--toast-accent) 20%, transparent);
+      background: color-mix(in srgb, var(--toast-accent) 18%, transparent);
     }
   }
 
@@ -223,22 +218,6 @@ function handleAction() {
   }
   &--info {
     --toast-accent: var(--fg-accent-color);
-  }
-}
-
-@keyframes kit-toast-progress {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .kit-toast-item-progress {
-    animation: none;
-    display: none;
   }
 }
 </style>
