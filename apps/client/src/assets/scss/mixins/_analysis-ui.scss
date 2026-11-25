@@ -1,0 +1,48 @@
+@use './media' as *;
+
+@mixin analyzer-section-divider {
+  position: relative;
+  margin-top: calc(32px + var(--analysis-section-gap));
+
+  &::before {
+    position: absolute;
+    inset: -32px 0 auto;
+    border-top: 1px dashed var(--border-primary-color);
+    content: '';
+    pointer-events: none;
+  }
+
+  @include media-down(sm) {
+    &::before {
+      inset-inline-start: calc(-1 * var(--analyzer-padding-left));
+      inset-inline-end: calc(-1 * var(--analyzer-padding-right));
+    }
+  }
+}
+
+@mixin analyzer-formality-meter {
+  --formality-gap: 6px;
+
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--formality-gap);
+
+  .meter-bar {
+    height: 7px;
+    border-radius: 999px;
+    background-color: var(--bg-tertiary-color);
+
+    &.filled {
+      background-image: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+      background-size: calc(500% + 4 * var(--formality-gap)) 100%;
+      background-repeat: no-repeat;
+    }
+
+    // Each filled cell shows its slice of the same gradient across the five cells.
+    @for $step from 2 through 5 {
+      &:nth-child(#{$step}) {
+        background-position: (($step - 1) * 25%) 0;
+      }
+    }
+  }
+}

@@ -12,6 +12,7 @@ import type {
 import { Icon } from '@iconify/vue'
 import { computed, inject, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useInlineCanvasLock } from '~/01.shared/composables/use-inline-canvas-lock'
 import { computeCanvasGraphLayout } from '../../../../shared/lib/canvas-layout'
 import { getPosClass } from '../../../../shared/lib/tone-utils'
 import { useCanvasViewport } from '../../composables/use-canvas-viewport'
@@ -37,6 +38,7 @@ const { t } = useI18n()
 const viewport = useCanvasViewport()
 const canvasShellEl = useTemplateRef<HTMLElement>('canvasShellRef')
 const viewportContainerEl = useTemplateRef<HTMLDivElement>('viewportContainerRef')
+const { showGestureToggle, isTouchLocked, toggleGestureLock } = useInlineCanvasLock(viewportContainerEl, viewport.isFullscreen)
 
 const dialogZIndex = inject<Ref<number> | null>('kit-dialog-z-index', null)
 const inlineHeight = ref(0)
@@ -290,16 +292,35 @@ onMounted(() => {
         v-if="props.viewMode === 'hierarchy'"
         ref="viewportContainerRef"
         class="canvas-viewport"
-        :class="{ 'is-panning': viewport.isPanning.value }"
-        @pointerdown="viewport.onPointerDown"
+        :class="{ 'is-panning': viewport.isPanning.value, 'is-touch-locked': isTouchLocked }"
+        @pointerdown="!isTouchLocked && viewport.onPointerDown($event)"
         @pointermove="viewport.onPointerMove"
         @pointerup="viewport.onPointerUp"
         @pointercancel="viewport.onPointerUp"
         @lostpointercapture="viewport.onPointerUp"
-        @click.capture="viewport.onClickCapture"
-        @wheel="viewport.onWheel"
+        @wheel="!isTouchLocked && viewport.onWheel($event)"
       >
-        <div class="canvas-stage" :style="stageSizeStyle">
+        <button
+          v-if="showGestureToggle"
+          type="button"
+          class="canvas-gesture-toggle"
+          :class="{ 'is-locked': isTouchLocked }"
+          :aria-label="isTouchLocked ? t('plugins.chinese-analyzer.unlockCanvas') : t('plugins.chinese-analyzer.lockCanvas')"
+          @pointerdown.stop
+          @click="toggleGestureLock"
+        >
+          <span class="canvas-gesture-hint">
+            <Icon :icon="isTouchLocked ? 'mdi:gesture-tap' : 'mdi:lock-open-variant-outline'" aria-hidden="true" />
+            <span v-if="isTouchLocked">{{ t('plugins.chinese-analyzer.unlockCanvas') }}</span>
+          </span>
+        </button>
+
+        <div
+          class="canvas-stage"
+          :style="stageSizeStyle"
+          :inert="isTouchLocked"
+          @click.capture="viewport.onClickCapture"
+        >
           <!-- SVG Bezier Connections & Syntactic Dependency Arcs -->
           <svg
             class="canvas-connections-svg"
@@ -1640,6 +1661,7 @@ onMounted(() => {
     color: var(--fg-secondary-color);
   }
 }
+@include canvas-touch-lock;
 @include compact-canvas-inline;
 @include compact-canvas-fullscreen;
 </style>

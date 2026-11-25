@@ -526,9 +526,9 @@ function onTokenClick(token: LexemeToken): void {
     font-weight: 500;
     color: var(--fg-tertiary-color);
     max-width: 115px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   @include media-down(sm) {
@@ -549,7 +549,7 @@ function onTokenClick(token: LexemeToken): void {
 
     .ruby-gloss {
       font-size: 0.65rem;
-      max-width: 86px;
+      max-width: 112px;
     }
   }
 }

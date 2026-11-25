@@ -47,6 +47,8 @@ export default {
   zoomOut: '缩小',
   fullscreen: '全屏模式',
   exitFullscreen: '退出全屏',
+  unlockCanvas: '轻触以移动画布',
+  lockCanvas: '锁定画布',
   layerClauses: '句法分句 / 成分块',
   layerWords: '词形变化 (词素)',
   layerMorphemes: '词素拆解 (构词)',

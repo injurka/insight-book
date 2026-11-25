@@ -47,6 +47,8 @@ export default {
   zoomOut: 'Zoom out',
   fullscreen: 'Fullscreen',
   exitFullscreen: 'Exit fullscreen',
+  unlockCanvas: 'Tap to move the canvas',
+  lockCanvas: 'Lock canvas',
   layerClauses: 'Syntactic Clauses',
   layerWords: 'Word Forms (Lexemes)',
   layerMorphemes: 'Morphemes (Word Anatomy)',

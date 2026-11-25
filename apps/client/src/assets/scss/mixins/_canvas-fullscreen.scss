@@ -159,3 +159,58 @@
     }
   }
 }
+
+@mixin canvas-touch-lock {
+  .canvas-viewport.is-touch-locked {
+    touch-action: auto;
+    cursor: auto;
+  }
+
+  .canvas-gesture-toggle {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    border: 0;
+    padding: 8px;
+    background: transparent;
+    color: var(--fg-primary-color);
+    font: inherit;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--fg-accent-color);
+      outline-offset: -2px;
+    }
+
+    &.is-locked {
+      inset: 0;
+      align-items: flex-start;
+      touch-action: manipulation;
+      padding-top: 12px;
+    }
+
+    &:not(.is-locked) {
+      inset-block-start: 4px;
+      inset-inline-end: 4px;
+    }
+  }
+
+  .canvas-gesture-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 3px 10px;
+    border: 1px solid var(--border-secondary-color);
+    border-radius: 999px;
+    background: var(--bg-secondary-color);
+    color: var(--fg-primary-color);
+    font-size: 0.75rem;
+    line-height: 1.25;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+}

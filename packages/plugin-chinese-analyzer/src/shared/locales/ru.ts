@@ -50,6 +50,8 @@ export default {
   zoomOut: 'Отдалить',
   fullscreen: 'На весь экран',
   exitFullscreen: 'Свернуть экран',
+  unlockCanvas: 'Коснитесь, чтобы двигать полотно',
+  lockCanvas: 'Заблокировать полотно',
   layerClauses: 'Синтаксические блоки',
   layerWords: 'Лексемы (Слова)',
   layerCharacters: 'Иероглифы (字)',

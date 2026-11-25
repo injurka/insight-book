@@ -46,7 +46,7 @@ const formalitySteps = [1, 2, 3, 4, 5]
           <span class="formality-badge">{{ props.usageContext.formalityLabel }} ({{ props.usageContext.formalityScore }}/5)</span>
         </div>
 
-        <div class="formality-meter">
+        <div class="formality-meter" aria-hidden="true">
           <span
             v-for="step in formalitySteps"
             :key="step"
@@ -220,19 +220,7 @@ const formalitySteps = [1, 2, 3, 4, 5]
 }
 
 .formality-meter {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-
-  .meter-bar {
-    height: 7px;
-    border-radius: 999px;
-    background: var(--bg-tertiary-color);
-
-    &.filled {
-      background: linear-gradient(90deg, var(--fg-accent-color), #f59e0b);
-    }
-  }
+  @include analyzer-formality-meter;
 }
 
 .nuance-sub {

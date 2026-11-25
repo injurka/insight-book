@@ -416,10 +416,12 @@ onUnmounted(() => {
 .analysis-content {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  --analysis-section-gap: 22px;
+
+  gap: var(--analysis-section-gap);
 
   @include media-down(sm) {
-    gap: 16px;
+    --analysis-section-gap: 16px;
   }
 }
 
@@ -449,22 +451,6 @@ onUnmounted(() => {
 }
 
 .analysis-section-divider {
-  position: relative;
-  margin-top: 16px;
-
-  &::before {
-    position: absolute;
-    inset: -16px 0 auto;
-    border-top: 1px dashed var(--border-primary-color);
-    content: '';
-    pointer-events: none;
-  }
-
-  @include media-down(sm) {
-    &::before {
-      left: calc(-1 * var(--analyzer-padding-left));
-      right: calc(-1 * var(--analyzer-padding-right));
-    }
-  }
+  @include analyzer-section-divider;
 }
 </style>

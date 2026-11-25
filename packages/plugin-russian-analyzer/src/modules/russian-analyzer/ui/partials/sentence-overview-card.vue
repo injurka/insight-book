@@ -582,9 +582,9 @@ function onTokenClick(token: RussianLexemeToken): void {
     font-weight: 500;
     color: var(--fg-tertiary-color);
     max-width: 135px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   @include media-down(sm) {
@@ -606,7 +606,7 @@ function onTokenClick(token: RussianLexemeToken): void {
 
     .ruby-gloss {
       font-size: 0.64rem;
-      max-width: 96px;
+      max-width: 112px;
     }
   }
 }
