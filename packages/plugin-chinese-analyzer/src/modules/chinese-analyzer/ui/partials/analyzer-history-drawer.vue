@@ -52,6 +52,9 @@ function onSelectItem(item: AnalysisHistoryItem): void {
             :class="{ active: item.hanzi === props.activeHanzi }"
             @click="onSelectItem(item)"
           >
+            <div class="hi-hanzi">
+              {{ item.hanzi }}
+            </div>
             <div class="hi-actions">
               <span v-if="item.hskLevel" class="hi-hsk">{{ item.hskLevel }}</span>
               <button
@@ -62,17 +65,11 @@ function onSelectItem(item: AnalysisHistoryItem): void {
                 <Icon icon="mdi:delete-outline" />
               </button>
             </div>
-
-            <div class="hi-content">
-              <div class="hi-hanzi">
-                {{ item.hanzi }}
-              </div>
-              <div class="hi-pinyin">
-                {{ item.pinyin }}
-              </div>
-              <div class="hi-trans">
-                {{ item.translation }}
-              </div>
+            <div class="hi-pinyin">
+              {{ item.pinyin }}
+            </div>
+            <div class="hi-trans">
+              {{ item.translation }}
             </div>
           </div>
         </div>
@@ -129,10 +126,12 @@ function onSelectItem(item: AnalysisHistoryItem): void {
 }
 
 .history-item-card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 14px 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 8px;
+  padding: 10px 14px 12px;
+  overflow-wrap: anywhere;
   border-radius: 13px;
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
@@ -146,14 +145,6 @@ function onSelectItem(item: AnalysisHistoryItem): void {
   &.active {
     border-color: var(--fg-accent-color);
     background: rgba(var(--fg-accent-color-rgb), 0.08);
-  }
-
-  .hi-content {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-    overflow-wrap: anywhere;
   }
 
   .hi-actions {
@@ -174,9 +165,15 @@ function onSelectItem(item: AnalysisHistoryItem): void {
   }
 
   .hi-hanzi {
+    padding-block-start: 4px;
     font-size: 1.05rem;
     font-weight: 800;
     color: var(--fg-primary-color);
+  }
+
+  .hi-pinyin,
+  .hi-trans {
+    grid-column: 1 / -1;
   }
 
   .hi-pinyin {

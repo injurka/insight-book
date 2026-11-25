@@ -8,8 +8,10 @@ import {
   splitRhythmIntoSentenceRows,
 } from '../../../../shared/lib/sentence-segmentation'
 import { getTonePitchTriplet } from '../../../../shared/lib/tone-utils'
+import AnalyzerAudioIcon from './analyzer-audio-icon.vue'
 
 interface Props {
+  loadingAudioText?: string | null
   phonetics: PhoneticsAnalysis
   hanzi?: string
 }
@@ -82,9 +84,10 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
             <button
               type="button"
               class="rhythm-pill"
+              :aria-busy="props.loadingAudioText === seg.trim()"
               @click="emit('speak', seg)"
             >
-              <Icon icon="mdi:volume-medium" class="r-icon" />
+              <AnalyzerAudioIcon icon="mdi:volume-medium" :loading="props.loadingAudioText === seg.trim()" class="r-icon" />
               <span>{{ seg }}</span>
             </button>
             <span v-if="idx < row.length - 1" class="pause-slash">/</span>

@@ -8,6 +8,7 @@ import { detectInputLanguage } from '../../../../shared/lib/tone-utils'
 
 interface Props {
   text: string
+  compact?: boolean
 }
 
 type LookupState
@@ -72,7 +73,7 @@ function plainDictionaryTranslation(translation: string): string {
 </script>
 
 <template>
-  <aside class="cached-chinese-entry">
+  <aside class="cached-chinese-entry" :class="{ compact: props.compact }">
     <div class="cache-source">
       {{ t(lookup.kind === 'found' && lookup.entry.source === 'reader' ? 'plugins.chinese-analyzer.cachedReaderEntry' : 'plugins.chinese-analyzer.cachedDictionaryEntry') }}
     </div>
@@ -102,6 +103,17 @@ function plainDictionaryTranslation(translation: string): string {
   border-radius: 6px;
   background: var(--bg-primary-color);
   overflow-wrap: anywhere;
+
+  &.compact {
+    grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 0;
+    border-block-start: 1px solid var(--border-secondary-color);
+    border-radius: 0;
+    background: transparent;
+  }
 }
 .cache-source {
   color: var(--fg-secondary-color);

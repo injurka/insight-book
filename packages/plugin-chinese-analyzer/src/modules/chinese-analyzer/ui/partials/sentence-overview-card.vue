@@ -9,8 +9,10 @@ import {
   splitTextIntoSentenceLines,
 } from '../../../../shared/lib/sentence-segmentation'
 import { getPosClass } from '../../../../shared/lib/tone-utils'
+import AnalyzerAudioIcon from './analyzer-audio-icon.vue'
 
 interface Props {
+  loadingAudioText?: string | null
   sentence: SentenceOverview
   tokens: LexemeToken[]
   selectedNode: CanvasSelectedNode | null
@@ -73,11 +75,9 @@ function onTokenClick(token: LexemeToken): void {
   <section class="overview-card">
     <!-- Top Meta & Actions Bar -->
     <div class="overview-topbar">
-      <div class="meta-badges">
-        <span class="meta-badge badge-hsk">{{ props.sentence.hskLevel }}</span>
-        <span class="meta-badge badge-register">{{ props.sentence.register }}</span>
-        <span class="meta-badge badge-type">{{ props.sentence.sentenceType }}</span>
-      </div>
+      <h2 class="overview-title">
+        {{ t('plugins.chinese-analyzer.resultTitle') }}
+      </h2>
 
       <div class="overview-actions">
         <button
@@ -96,12 +96,19 @@ function onTokenClick(token: LexemeToken): void {
           type="button"
           class="action-pill primary-pill"
           :class="{ playing: props.isPlayingAudio }"
+          :aria-busy="props.loadingAudioText === props.sentence.hanzi.trim()"
           @click="emit('speak', props.sentence.hanzi)"
         >
-          <Icon :icon="props.isPlayingAudio ? 'mdi:stop' : 'mdi:volume-high'" />
+          <AnalyzerAudioIcon :icon="props.isPlayingAudio ? 'mdi:stop' : 'mdi:volume-high'" :loading="props.loadingAudioText === props.sentence.hanzi.trim()" />
           <span>{{ t('plugins.chinese-analyzer.listenSentence') }}</span>
         </button>
       </div>
+    </div>
+
+    <div class="meta-badges">
+      <span class="meta-badge badge-hsk">{{ props.sentence.hskLevel }}</span>
+      <span class="meta-badge badge-register">{{ props.sentence.register }}</span>
+      <span class="meta-badge badge-type">{{ props.sentence.sentenceType }}</span>
     </div>
 
     <!-- Original Russian Query Banner (when translated from RU) -->
@@ -231,6 +238,14 @@ function onTokenClick(token: LexemeToken): void {
   }
 }
 
+.overview-title {
+  margin: 0;
+  color: var(--fg-primary-color);
+  font-size: 1rem;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
 .meta-badges {
   display: flex;
   align-items: center;
@@ -258,20 +273,16 @@ function onTokenClick(token: LexemeToken): void {
   }
 
   &.badge-type {
-    background: var(--bg-primary-color);
+    padding-inline: 4px;
     color: var(--fg-secondary-color);
-    border: 1px solid var(--border-secondary-color);
-    font-weight: 600;
+    font-weight: 500;
+    overflow-wrap: anywhere;
   }
 
   @include media-down(sm) {
     padding: 3px 8px;
     font-size: 0.7rem;
     border-radius: 7px;
-
-    &.badge-type {
-      background: var(--bg-secondary-color);
-    }
   }
 }
 
@@ -303,18 +314,18 @@ function onTokenClick(token: LexemeToken): void {
   }
 
   &.primary-pill {
-    background: var(--fg-accent-color);
-    border-color: var(--fg-accent-color);
-    color: #ffffff;
+    background: var(--bg-primary-color);
+    border-color: var(--border-secondary-color);
+    color: var(--fg-accent-color);
 
     &:hover {
-      filter: brightness(1.08);
-      color: #ffffff;
+      border-color: var(--fg-accent-color);
     }
 
     &.playing {
       background: var(--fg-error-color);
       border-color: var(--fg-error-color);
+      color: #fff;
     }
   }
 

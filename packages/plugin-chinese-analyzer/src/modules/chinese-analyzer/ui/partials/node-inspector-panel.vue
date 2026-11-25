@@ -10,9 +10,11 @@ import HanziWriter from 'hanzi-writer'
 import { computed, shallowRef, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getPosClass, getToneBadgeLabel } from '../../../../shared/lib/tone-utils'
+import AnalyzerAudioIcon from './analyzer-audio-icon.vue'
 import CachedChineseEntry from './cached-chinese-entry.vue'
 
 interface Props {
+  loadingAudioText?: string | null
   selectedNode: CanvasSelectedNode | null
   allTokens: LexemeToken[]
 }
@@ -226,9 +228,10 @@ function getClauseTokens(tokenIds: string[]): LexemeToken[] {
               class="inspector-action-btn"
               :aria-label="t('plugins.chinese-analyzer.listenWord')"
               :title="t('plugins.chinese-analyzer.listenWord')"
+              :aria-busy="props.loadingAudioText === props.selectedNode.token.hanzi.trim()"
               @click="emit('speak', props.selectedNode.token.hanzi)"
             >
-              <Icon icon="mdi:volume-high" aria-hidden="true" />
+              <AnalyzerAudioIcon icon="mdi:volume-high" :loading="props.loadingAudioText === props.selectedNode.token.hanzi.trim()" />
             </button>
             <button
               type="button"
@@ -328,9 +331,10 @@ function getClauseTokens(tokenIds: string[]): LexemeToken[] {
             <button
               type="button"
               class="col-speak-btn"
+              :aria-busy="props.loadingAudioText === col.hanzi.trim()"
               @click="emit('speak', col.hanzi)"
             >
-              <Icon icon="mdi:volume-medium" />
+              <AnalyzerAudioIcon icon="mdi:volume-medium" :loading="props.loadingAudioText === col.hanzi.trim()" />
             </button>
           </div>
         </div>

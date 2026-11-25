@@ -25,6 +25,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
@@ -34,7 +35,12 @@ const page = useTemplateRef<HTMLElement>('pageRef')
 
 const { currentAnalysis, viewAnalysis } = analyzer
 const isHistoryOpen = ref(false)
+
+const loadingAudioText = computed(() => tts.isLoadingAudio.value ? tts.activeText.value : null)
 const cachePreviewText = computed(() => {
+  if (analyzer.detectedLanguage.value !== 'zh')
+    return ''
+
   const input = analyzer.queryInput.value.trim()
   const analysis = currentAnalysis.value?.sentence
 
@@ -97,10 +103,12 @@ onUnmounted(() => {
         <button
           type="button"
           class="history-trigger-btn"
+          :aria-label="t('plugins.chinese-analyzer.historyBtn')"
+          :title="t('plugins.chinese-analyzer.historyBtn')"
           @click="isHistoryOpen = true"
         >
           <Icon icon="mdi:history" />
-          <span>{{ t('plugins.chinese-analyzer.historyBtn') }}</span>
+          <span class="history-label">{{ t('plugins.chinese-analyzer.historyBtn') }}</span>
           <span v-if="analyzer.history.historyItems.value.length > 0" class="history-count">
             {{ analyzer.history.historyItems.value.length }}
           </span>
@@ -115,9 +123,11 @@ onUnmounted(() => {
       :is-analyzing="analyzer.isAnalyzing.value"
       :detected-language="analyzer.detectedLanguage.value"
       @analyze="analyzeAndScroll"
-    />
-
-    <CachedChineseEntry v-if="props.initialSentence === undefined && cachePreviewText" :text="cachePreviewText" />
+    >
+      <template v-if="cachePreviewText" #lookup>
+        <CachedChineseEntry :text="cachePreviewText" compact />
+      </template>
+    </AnalyzerHeroInput>
 
     <KitActivityLoader
       v-if="analyzer.isAnalyzing.value"
@@ -157,7 +167,8 @@ onUnmounted(() => {
         :sentence="viewAnalysis.sentence"
         :tokens="viewAnalysis.tokens"
         :selected-node="analyzer.selectedNode.value"
-        :is-playing-audio="tts.activeText.value === viewAnalysis.sentence.hanzi.trim() && (tts.isPlaying.value || tts.isLoadingAudio.value)"
+        :is-playing-audio="tts.activeText.value === viewAnalysis.sentence.hanzi.trim() && tts.isPlaying.value"
+        :loading-audio-text="loadingAudioText"
         @select-token="onSelectTokenFromOverview"
         @speak="tts.speakChinese"
       />
@@ -182,6 +193,7 @@ onUnmounted(() => {
           <NodeInspectorPanel
             :selected-node="analyzer.selectedNode.value"
             :all-tokens="viewAnalysis.tokens"
+            :loading-audio-text="loadingAudioText"
             @select-node="analyzer.selectNode"
             @speak="tts.speakChinese"
             @analyze-query="analyzeAndScroll"
@@ -194,6 +206,7 @@ onUnmounted(() => {
         class="analysis-section-divider"
         :phonetics="viewAnalysis.phonetics"
         :hanzi="viewAnalysis.sentence.hanzi"
+        :loading-audio-text="loadingAudioText"
         @speak="tts.speakChinese"
       />
 
@@ -202,6 +215,7 @@ onUnmounted(() => {
         v-if="viewAnalysis.grammarPatterns.length > 0"
         class="analysis-section-divider"
         :patterns="viewAnalysis.grammarPatterns"
+        :loading-audio-text="loadingAudioText"
         @speak="tts.speakChinese"
         @analyze-query="analyzeAndScroll"
       />
@@ -216,13 +230,14 @@ onUnmounted(() => {
         v-if="viewAnalysis.alternatives.length > 0"
         class="analysis-section-divider"
         :alternatives="viewAnalysis.alternatives"
+        :loading-audio-text="loadingAudioText"
         @speak="tts.speakChinese"
         @analyze-variant="analyzeAndScroll"
       />
     </div>
 
     <p v-if="tts.isAudioUnavailable.value" role="status" class="audio-cache-status">
-      {{ t('plugins.chinese-analyzer.cachedAudioUnavailable') }}
+      {{ t('plugins.chinese-analyzer.audioUnavailable') }}
     </p>
 
     <!-- History Modal -->
@@ -299,6 +314,8 @@ onUnmounted(() => {
   flex-wrap: wrap;
 
   @include media-down(sm) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
   }
 }
@@ -341,9 +358,9 @@ onUnmounted(() => {
   height: 40px;
   padding: 0 14px;
   border-radius: 12px;
-  border: 1px solid var(--border-primary-color);
-  background: var(--bg-secondary-color);
-  color: var(--fg-primary-color);
+  border: 1px solid var(--border-secondary-color);
+  background: transparent;
+  color: var(--fg-secondary-color);
   font-family: inherit;
   font-size: 0.86rem;
   font-weight: 700;
@@ -359,8 +376,8 @@ onUnmounted(() => {
     padding: 1px 7px;
     border-radius: 999px;
     font-size: 0.72rem;
-    background: var(--fg-accent-color);
-    color: #ffffff;
+    background: var(--bg-tertiary-color);
+    color: var(--fg-primary-color);
   }
 
   @include media-down(sm) {
@@ -369,6 +386,10 @@ onUnmounted(() => {
     border-radius: 9px;
     font-size: 0.76rem;
     gap: 5px;
+
+    .history-label {
+      display: none;
+    }
   }
 }
 

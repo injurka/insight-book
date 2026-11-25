@@ -4,6 +4,8 @@ import type {
 } from '@injurka/insight-book-plugin-api'
 import { getPluginApi as getGlobalPluginApi } from '@injurka/insight-book-plugin-api'
 
+const TTS_VOICE = 'default'
+
 let localPluginApi: InsightBookPluginApiFacade | null = null
 
 export function setLocalPluginApi(api: InsightBookPluginApiFacade): void {
@@ -132,7 +134,18 @@ export async function requestCachedChineseEntry(text: string, targetLanguage: st
 export async function requestCachedTtsAudio(text: string, signal: AbortSignal): Promise<string | null> {
   const response = await getPluginApi()?.request<{ audioBase64: string | null }>('/api/tts/cache-check', {
     method: 'POST',
-    body: { text },
+    body: { text, voice: TTS_VOICE },
+    signal,
+    silentErrors: true,
+  })
+
+  return response?.audioBase64 ?? null
+}
+
+export async function requestTtsAudio(text: string, signal: AbortSignal): Promise<string | null> {
+  const response = await getPluginApi()?.request<{ audioBase64: string | null }>('/api/tts', {
+    method: 'POST',
+    body: { text, voice: TTS_VOICE },
     signal,
     silentErrors: true,
   })

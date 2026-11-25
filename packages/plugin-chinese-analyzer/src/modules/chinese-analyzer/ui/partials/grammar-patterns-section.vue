@@ -2,8 +2,10 @@
 import type { GrammarPatternItem } from '../../model'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
+import AnalyzerAudioIcon from './analyzer-audio-icon.vue'
 
 interface Props {
+  loadingAudioText?: string | null
   patterns: GrammarPatternItem[]
 }
 
@@ -83,9 +85,10 @@ const { t } = useI18n()
                 <button
                   type="button"
                   class="ex-btn"
+                  :aria-busy="props.loadingAudioText === ex.hanzi.trim()"
                   @click="emit('speak', ex.hanzi)"
                 >
-                  <Icon icon="mdi:volume-medium" />
+                  <AnalyzerAudioIcon icon="mdi:volume-medium" :loading="props.loadingAudioText === ex.hanzi.trim()" />
                 </button>
                 <button
                   type="button"

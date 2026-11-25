@@ -167,11 +167,6 @@ async function handleStartVoiceRecording(): Promise<void> {
             <Icon icon="mdi:microphone" />
           </button>
 
-          <span class="lang-hint">
-            <Icon :icon="detectedBadgeIcon" class="hint-icon" />
-            <span class="hint-text">{{ detectedBadgeText }}</span>
-          </span>
-
           <button
             v-if="props.modelValue.trim()"
             type="button"
@@ -183,6 +178,14 @@ async function handleStartVoiceRecording(): Promise<void> {
           >
             <Icon icon="mdi:close" />
           </button>
+
+          <span v-if="props.modelValue.trim()" class="lang-hint" :title="detectedBadgeText">
+            <Icon :icon="detectedBadgeIcon" class="hint-icon" aria-hidden="true" />
+            <span class="sr-only">{{ detectedBadgeText }}</span>
+            <span v-if="props.detectedLanguage !== 'auto'" aria-hidden="true">
+              {{ props.detectedLanguage === 'zh' ? '中文' : 'RU' }}
+            </span>
+          </span>
 
           <button
             type="button"
@@ -200,6 +203,8 @@ async function handleStartVoiceRecording(): Promise<void> {
             />
           </button>
         </div>
+
+        <slot name="lookup" />
       </template>
 
       <!-- Voice Error Notification -->
@@ -244,7 +249,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   min-width: 0;
   border: 1px solid var(--border-secondary-color);
   border-radius: 20px;
-  background: var(--bg-primary-color);
+  background: var(--bg-secondary-color);
   transition:
     border-color 0.18s ease,
     box-shadow 0.18s ease;
@@ -264,9 +269,9 @@ async function handleStartVoiceRecording(): Promise<void> {
   display: block;
   width: 100%;
   min-width: 0;
-  min-height: 4.6rem;
+  min-height: 3.4rem;
   max-height: min(45vh, 16rem);
-  padding: 16px 18px 6px;
+  padding: 13px 14px 6px;
   border: 0;
   outline: none;
   resize: none;
@@ -285,7 +290,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   }
 
   @include media-down(sm) {
-    padding: 12px 14px 4px;
+    padding: 11px 12px 4px;
     font-size: 1rem;
   }
 }
@@ -294,6 +299,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
   padding: 6px 8px 8px;
 
   @include media-down(sm) {
@@ -306,7 +312,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 40px;
+  width: 36px;
   height: 40px;
   border: 0;
   border-radius: 12px;
@@ -336,30 +342,14 @@ async function handleStartVoiceRecording(): Promise<void> {
 .lang-hint {
   display: inline-flex;
   align-items: center;
-  flex: 1 1 0;
-  gap: 6px;
-  min-width: 0;
-  padding: 0 6px;
-  color: var(--fg-tertiary-color);
-  font-size: 0.78rem;
-  line-height: 1.3;
+  gap: 4px;
+  padding-inline: 5px;
+  color: var(--fg-secondary-color);
+  font-size: 0.75rem;
+  white-space: nowrap;
 
   .hint-icon {
-    flex: none;
     font-size: 1rem;
-    color: var(--fg-accent-color);
-  }
-
-  .hint-text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  @include media-down(sm) {
-    .hint-text {
-      display: none;
-    }
   }
 }
 
@@ -374,8 +364,8 @@ async function handleStartVoiceRecording(): Promise<void> {
   padding: 0 16px 0 18px;
   border: 0;
   border-radius: 12px;
-  background: var(--fg-primary-color);
-  color: var(--bg-primary-color);
+  background: var(--fg-accent-color);
+  color: var(--action-on-accent-color, #fff);
   font: inherit;
   font-size: 0.9rem;
   font-weight: 700;
@@ -393,7 +383,7 @@ async function handleStartVoiceRecording(): Promise<void> {
 
   &:disabled {
     background: var(--bg-tertiary-color);
-    color: var(--fg-tertiary-color);
+    color: var(--fg-secondary-color);
     cursor: default;
   }
 

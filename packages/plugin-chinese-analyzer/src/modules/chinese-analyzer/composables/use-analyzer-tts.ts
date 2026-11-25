@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { requestCachedTtsAudio } from '../../../shared/lib/api'
+import { requestCachedTtsAudio, requestTtsAudio } from '../../../shared/lib/api'
 
 export function useAnalyzerTts() {
   // Keep recent results in memory for the current page only.
@@ -78,7 +78,7 @@ export function useAnalyzerTts() {
     }
   }
 
-  async function playCachedAudio(base64: string, signal: AbortSignal): Promise<boolean> {
+  async function playAudio(base64: string, signal: AbortSignal): Promise<boolean> {
     const audio = new Audio(`data:audio/mpeg;base64,${base64}`)
     currentAudio = audio
     audio.onended = () => {
@@ -113,11 +113,14 @@ export function useAnalyzerTts() {
 
   async function loadAudio(text: string, signal: AbortSignal): Promise<string | null> {
     try {
-      const cached = audioCache.get(text) ?? await requestCachedTtsAudio(text, signal)
+      const cached = audioCache.get(text) ?? await requestCachedTtsAudio(text, signal).catch(() => null)
+      signal.throwIfAborted()
 
-      if (cached && !signal.aborted) {
+      const audio = cached ?? await requestTtsAudio(text, signal)
+
+      if (audio && !signal.aborted) {
         audioCache.delete(text)
-        audioCache.set(text, cached)
+        audioCache.set(text, audio)
 
         if (audioCache.size > 24) {
           const oldest = audioCache.keys().next().value
@@ -127,7 +130,7 @@ export function useAnalyzerTts() {
         }
       }
 
-      return cached
+      return audio
     }
     catch {
       return null
@@ -151,12 +154,12 @@ export function useAnalyzerTts() {
     activeText.value = clean
     isLoadingAudio.value = true
 
-    const cached = await loadAudio(clean, signal)
+    const audio = await loadAudio(clean, signal)
 
     if (signal.aborted)
       return
 
-    const played = cached ? await playCachedAudio(cached, signal) : false
+    const played = audio ? await playAudio(audio, signal) : false
 
     if (signal.aborted)
       return

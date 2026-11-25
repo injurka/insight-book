@@ -2,8 +2,10 @@
 import type { AlternativeVariant } from '../../model'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
+import AnalyzerAudioIcon from './analyzer-audio-icon.vue'
 
 interface Props {
+  loadingAudioText?: string | null
   alternatives: AlternativeVariant[]
 }
 
@@ -45,9 +47,10 @@ const { t } = useI18n()
             <button
               type="button"
               class="alt-icon-btn"
+              :aria-busy="props.loadingAudioText === alt.hanzi.trim()"
               @click="emit('speak', alt.hanzi)"
             >
-              <Icon icon="mdi:volume-high" />
+              <AnalyzerAudioIcon icon="mdi:volume-high" :loading="props.loadingAudioText === alt.hanzi.trim()" />
             </button>
           </div>
         </div>
