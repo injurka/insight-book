@@ -56,7 +56,7 @@
     "betaWarning": "The project is not production-ready yet. There is no open registration, access is by whitelist only.",
     "yandexLogin": "Sign in with Yandex",
     "whitelistLogin": "Sign in via whitelist",
-    "earlyAccess": "Early Access",
+    "byLogin": "By login",
     "statBook": "Book",
     "statManga": "Manga",
     "statDict": "Dictionary",

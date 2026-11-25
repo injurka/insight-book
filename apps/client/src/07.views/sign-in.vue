@@ -113,9 +113,6 @@ const bookTiles = [
   },
 ]
 const showAuthControls = ref(false)
-let pressTimer: ReturnType<typeof setTimeout> | null = null
-let clickCount = 0
-let clickTimer: ReturnType<typeof setTimeout> | null = null
 
 const currentThemeIcon = computed(() => {
   switch (theme.value) {
@@ -273,37 +270,8 @@ async function finishNativeOAuth(attempt: NativeOAuthAttempt, url?: string) {
 function cancelOAuth() {
   oauthAbortController?.abort()
 }
-function startPress() {
-  if (showAuthControls.value)
-    return
-
-  pressTimer = setTimeout(() => {
-    showAuthControls.value = true
-  }, 1000)
-}
-function cancelPress() {
-  if (pressTimer) {
-    clearTimeout(pressTimer)
-    pressTimer = null
-  }
-}
-function handleClick() {
-  if (showAuthControls.value)
-    return
-
-  clickCount++
-
-  if (clickCount >= 3) {
-    showAuthControls.value = true
-    clickCount = 0
-  }
-
-  if (clickTimer)
-    clearTimeout(clickTimer)
-
-  clickTimer = setTimeout(() => {
-    clickCount = 0
-  }, 400)
+function toggleAuthControls() {
+  showAuthControls.value = !showAuthControls.value
 }
 
 onMounted(() => {
@@ -317,12 +285,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   cancelOAuth()
-
-  if (pressTimer)
-    clearTimeout(pressTimer)
-
-  if (clickTimer)
-    clearTimeout(clickTimer)
 })
 </script>
 
@@ -408,20 +370,16 @@ onUnmounted(() => {
 
       <div class="auth-card">
         <div class="auth-header">
-          <div
+          <button
+            type="button"
             class="auth-badge"
-            @mousedown="startPress"
-            @touchstart="startPress"
-            @mouseup="cancelPress"
-            @mouseleave="cancelPress"
-            @touchend="cancelPress"
-            @touchcancel="cancelPress"
-            @click="handleClick"
-            @contextmenu.prevent
+            :class="{ 'is-active': showAuthControls }"
+            :aria-expanded="showAuthControls"
+            @click="toggleAuthControls"
           >
             <Icon icon="mdi:lock-outline" />
-            <span>{{ t('signIn.earlyAccess') }}</span>
-          </div>
+            <span>{{ t('signIn.byLogin') }}</span>
+          </button>
           <h1 class="auth-title">
             {{ t('signIn.title') }}
           </h1>
@@ -915,14 +873,31 @@ onUnmounted(() => {
   background: var(--bg-accent-overlay-color);
   border: 1px solid var(--border-focus-color);
   color: var(--fg-accent-color);
+  font-family: inherit;
   font-size: 0.78rem;
   font-weight: 600;
   width: fit-content;
   letter-spacing: 0.3px;
   cursor: pointer;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
   user-select: none;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus-color);
+    outline-offset: 2px;
+  }
 
   svg,
   .iconify {
