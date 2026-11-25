@@ -1,9 +1,11 @@
 import type { CatalogPluginStatus } from '../constants/catalog-plugin'
+import type { ProductEventCategory } from '../constants/product-events'
 import type { AdminUserSortBy, SortDirection, UserLifecycleSegment } from '../types/admin-analytics'
 import { Elysia, t } from 'elysia'
 import { adminAnalyticsService } from '../services/admin-analytics.service'
 import { adminService } from '../services/admin.service'
 import { subscriptionTierService } from '../services/subscription-tier.service'
+import { userEventService } from '../services/user-event.service'
 import { authPlugin } from '../utils/auth'
 
 const localizedFields = {
@@ -81,6 +83,56 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
     }),
   })
 
+  .get('/analytics/events/overview', async ({ userId, query }) => {
+    return userEventService.getAdminEventsOverview(userId, query.days ? Number(query.days) : 30)
+  }, {
+    query: t.Object({
+      days: t.Optional(t.Numeric()),
+    }),
+  })
+
+  .get('/analytics/events/funnel', async ({ userId, query }) => {
+    const stepList = (query.steps || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+
+    return userEventService.getAdminCustomFunnel(userId, stepList, query.days ? Number(query.days) : 30)
+  }, {
+    query: t.Object({
+      steps: t.String(),
+      days: t.Optional(t.Numeric()),
+    }),
+  })
+
+  .get('/analytics/events', async ({ userId, query }) => {
+    return userEventService.listAdminEvents(userId, {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 30,
+      event: query.event as string | undefined,
+      category: query.category as ProductEventCategory | 'all' | undefined,
+      userId: query.targetUserId ? Number(query.targetUserId) : undefined,
+    })
+  }, {
+    query: t.Object({
+      page: t.Optional(t.Numeric()),
+      limit: t.Optional(t.Numeric()),
+      event: t.Optional(t.String()),
+      category: t.Optional(t.String()),
+      targetUserId: t.Optional(t.Numeric()),
+    }),
+  })
+
+  .post('/analytics/events/cleanup', async ({ userId, body }) => {
+    await adminService.assertAdmin(userId)
+
+    return userEventService.cleanupExpiredEvents(body?.retentionDays)
+  }, {
+    body: t.Optional(t.Object({
+      retentionDays: t.Optional(t.Number({ minimum: 7, maximum: 365 })),
+    })),
+  })
+
   .get('/users', async ({ userId, query }) => {
     return adminAnalyticsService.listUsersWithAnalytics(userId, {
       page: Number(query.page) || 1,
@@ -120,6 +172,23 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
     return adminAnalyticsService.getUserDetailedAnalytics(userId, Number(params.id))
   }, {
     params: t.Object({ id: t.Numeric() }),
+  })
+
+  .get('/users/:id/events', async ({ userId, params, query }) => {
+    return userEventService.getAdminUserEvents(userId, Number(params.id), {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 30,
+      event: query.event as string | undefined,
+      category: query.category as ProductEventCategory | 'all' | undefined,
+    })
+  }, {
+    params: t.Object({ id: t.Numeric() }),
+    query: t.Object({
+      page: t.Optional(t.Numeric()),
+      limit: t.Optional(t.Numeric()),
+      event: t.Optional(t.String()),
+      category: t.Optional(t.String()),
+    }),
   })
 
   .get('/users/:id', async ({ userId, params }) => {

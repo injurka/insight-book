@@ -41,6 +41,12 @@ export const ActivityTokensSchema = z.object({
 
 export const ActivitySectionSchema = z.enum(['reader', 'srs', 'library', 'other'])
 
+export interface QueuedProductEvent {
+  event: string
+  meta?: Record<string, string | number | boolean | null> | null
+  timestamp: string
+}
+
 export type ActivitySection = z.infer<typeof ActivitySectionSchema>
 export type ActivityStatsDomain = z.infer<typeof ActivityStatsSchema>
 export type ActivityTokensDomain = z.infer<typeof ActivityTokensSchema>

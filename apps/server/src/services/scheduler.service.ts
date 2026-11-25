@@ -4,6 +4,7 @@ import * as schema from '../db/schema'
 import { logger } from '../utils/logger'
 import { executeDump } from './dump.service'
 import { sendDailyMotivations } from './push.service'
+import { userEventService } from './user-event.service'
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
@@ -104,4 +105,17 @@ export function initScheduler() {
       logger.error(err)
     }
   })
+
+  // Автоочистка продуктовых событий старше 90 дней (при старте и ежедневно в 04:00)
+  const runEventsCleanup = async () => {
+    try {
+      await userEventService.cleanupExpiredEvents()
+    }
+    catch (err) {
+      logger.error(err, '❌ Error during user_events cleanup:')
+    }
+  }
+
+  setTimeout(runEventsCleanup, 10_000)
+  Bun.cron('0 4 * * *', runEventsCleanup)
 }

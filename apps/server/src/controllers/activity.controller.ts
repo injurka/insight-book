@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { activityService } from '../services/activity.service'
+import { userEventService } from '../services/user-event.service'
 import { cachePlugin } from '../utils/cache'
 import { AppError, handleElysiaError } from '../utils/errors'
 
@@ -72,5 +73,17 @@ export const activityRouter = new Elysia({ prefix: '/api/activity' })
         t.Literal('library'),
         t.Literal('other'),
       ])),
+    }),
+  })
+  .post('/events', async ({ userId, body }) => {
+    return await userEventService.ingestClientEvents(userId!, body.events)
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      events: t.Array(t.Object({
+        event: t.String({ minLength: 1, maxLength: 64 }),
+        meta: t.Optional(t.Nullable(t.Record(t.String(), t.Unknown()))),
+        timestamp: t.Optional(t.Nullable(t.String())),
+      }), { maxItems: 50 }),
     }),
   })

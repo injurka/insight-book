@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import { userEventService } from '../services/user-event.service'
 import { userPluginService } from '../services/user-plugin.service'
 import { authPlugin } from '../utils/auth'
 import { cachePlugin } from '../utils/cache'
@@ -10,7 +11,13 @@ export const pluginRouter = new Elysia({ prefix: '/api/plugins' })
     return userPluginService.getUserPlugins(userId)
   }, { cache: 'shortPrivate' })
   .post('/', async ({ body, userId }) => {
-    return userPluginService.installPlugin(userId, body)
+    const result = await userPluginService.installPlugin(userId, body)
+
+    void userEventService.recordServerEvent(userId, 'plugin_installed', {
+      pluginId: body.pluginId,
+    })
+
+    return result
   }, {
     body: t.Object({
       pluginId: t.String(),

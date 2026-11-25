@@ -1,6 +1,11 @@
 import type {
   AdminAnalyticsOverview,
+  AdminCustomFunnelResponse,
+  AdminEventsCleanupResult,
+  AdminEventsOverview,
+  AdminEventStreamResponse,
   AdminUserDetailedAnalytics,
+  AdminUserEventsResponse,
   AdminUserSortBy,
   CatalogPlugin,
   DashboardStats,
@@ -9,6 +14,7 @@ import type {
   PaginatedResponse,
   PendingBook,
   PendingPlugin,
+  ProductEventCategory,
   PublicBook,
   SortDirection,
   SubscriptionTier,
@@ -109,6 +115,30 @@ export const api = {
     analyticsOverview: (days: number = 30) =>
       request<AdminAnalyticsOverview>('/api/admin/analytics/overview', { query: { days } }),
 
+    analyticsEventsOverview: (days: number = 30) =>
+      request<AdminEventsOverview>('/api/admin/analytics/events/overview', { query: { days } }),
+
+    analyticsCustomFunnel: (steps: string[], days: number = 30) =>
+      request<AdminCustomFunnelResponse>('/api/admin/analytics/events/funnel', {
+        query: { steps: steps.join(','), days },
+      }),
+
+    listAnalyticsEvents: (opts: {
+      page?: number
+      limit?: number
+      event?: string
+      category?: ProductEventCategory | 'all'
+      targetUserId?: number
+    } = {}) =>
+      request<AdminEventStreamResponse>('/api/admin/analytics/events', { query: opts as Record<string, unknown> }),
+
+    cleanupAnalyticsEvents: (retentionDays?: number) =>
+      request<AdminEventsCleanupResult>('/api/admin/analytics/events/cleanup', {
+        method: 'POST',
+        body: JSON.stringify(retentionDays ? { retentionDays } : {}),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+
     listUsers: (opts: {
       page?: number
       limit?: number
@@ -124,6 +154,14 @@ export const api = {
 
     getUserAnalytics: (id: number) =>
       request<AdminUserDetailedAnalytics>(`/api/admin/users/${id}/analytics`),
+
+    getUserEvents: (id: number, opts: {
+      page?: number
+      limit?: number
+      event?: string
+      category?: ProductEventCategory | 'all'
+    } = {}) =>
+      request<AdminUserEventsResponse>(`/api/admin/users/${id}/events`, { query: opts as Record<string, unknown> }),
 
     createUser: (data: {
       username: string

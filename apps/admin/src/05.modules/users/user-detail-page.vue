@@ -8,17 +8,25 @@ import KitBtn from '~/02.kit/atoms/kit-btn.vue'
 import KitSkeleton from '~/02.kit/atoms/kit-skeleton.vue'
 import KitError from '~/02.kit/organisms/kit-error.vue'
 import { DEFAULT_SUBSCRIPTION_TIERS } from '~/03.domain/user'
+import UserEventsTimeline from './components/user-events-timeline.vue'
 import UserProfileHeader from './components/user-profile-header.vue'
 import UserActivityPanel from './user-activity-panel.vue'
 import UserEditForm from './user-edit-form.vue'
 
-type UserDetailTab = 'activity' | 'settings'
+type UserDetailTab = 'activity' | 'events' | 'settings'
+
+const props = defineProps<Props>()
+
+function parseTabQuery(raw: unknown): UserDetailTab {
+  if (raw === 'settings' || raw === 'events')
+    return raw
+
+  return 'activity'
+}
 
 interface Props {
   id: string
 }
-
-const props = defineProps<Props>()
 
 const { admin } = useRepos()
 const route = useRoute()
@@ -27,12 +35,13 @@ const router = useRouter()
 const user = ref<UserDetail | null>(null)
 const analytics = ref<AdminUserDetailedAnalytics | null>(null)
 const tiers = ref<SubscriptionTier[]>(DEFAULT_SUBSCRIPTION_TIERS)
-const activeTab = ref<UserDetailTab>(route.query.tab === 'settings' ? 'settings' : 'activity')
+const activeTab = ref<UserDetailTab>(parseTabQuery(route.query.tab))
 const loading = ref(true)
 const error = ref('')
 
 const tabs: Array<{ value: UserDetailTab, label: string, icon: string }> = [
   { value: 'activity', label: 'Обзор и активность', icon: 'mdi:chart-timeline-variant' },
+  { value: 'events', label: 'Лента событий', icon: 'mdi:timeline-text-outline' },
   { value: 'settings', label: 'Настройки аккаунта', icon: 'mdi:account-cog-outline' },
 ]
 
@@ -84,7 +93,7 @@ function handleDeleted() {
 
 watch(() => props.id, () => load())
 watch(() => route.query.tab, (val) => {
-  activeTab.value = val === 'settings' ? 'settings' : 'activity'
+  activeTab.value = parseTabQuery(val)
 })
 
 onMounted(() => load())
@@ -141,6 +150,10 @@ onMounted(() => load())
       <div v-if="activeTab === 'activity'" class="user-page__panel">
         <UserActivityPanel v-if="analytics" :analytics="analytics" />
         <KitSkeleton v-else height="260px" />
+      </div>
+
+      <div v-else-if="activeTab === 'events'" class="user-page__panel">
+        <UserEventsTimeline :user-id="user.id" />
       </div>
 
       <div v-else class="user-page__settings">

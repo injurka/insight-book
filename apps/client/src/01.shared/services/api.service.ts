@@ -746,6 +746,19 @@ export const api = {
       telemetryFeature: 'activity_heartbeat',
       keepalive: options?.keepalive,
     }),
+    sendEvents: async (events: Array<{
+      event: string
+      meta?: Record<string, string | number | boolean | null> | null
+      timestamp: string
+    }>, options?: { keepalive?: boolean }) => request<{ accepted: number }>('/api/activity/events', {
+      method: 'POST',
+      body: JSON.stringify({ events }),
+      headers: { 'Content-Type': 'application/json' },
+      silentErrors: true,
+      telemetryExpected: true,
+      telemetryFeature: 'product_events',
+      keepalive: options?.keepalive,
+    }),
   },
 
   quiz: {

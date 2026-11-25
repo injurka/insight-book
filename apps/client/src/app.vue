@@ -10,6 +10,7 @@ import { useBackHandler } from '~/01.shared/composables/use-back-handler'
 import { useChangeTheme } from '~/01.shared/composables/use-change-theme'
 import { useCustomFonts } from '~/01.shared/composables/use-custom-fonts'
 import { useGlobalTracking } from '~/01.shared/composables/use-global-tracking'
+import { useProductEventsSync } from '~/01.shared/composables/use-product-events-sync'
 import { isTauri } from '~/01.shared/lib/env'
 import { lazyComponent } from '~/01.shared/lib/lazy-component'
 import { applyPendingMainScroll } from '~/01.shared/lib/router'
@@ -104,6 +105,7 @@ provide(TTS_BOOK_CONTEXT_KEY, () => readerStore.currentBook)
 useChangeTheme()
 useGlobalTracking()
 useActivityHeartbeat()
+useProductEventsSync()
 useCustomFonts()
 useHead({
   title: titleChunk,

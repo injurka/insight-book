@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { quizService } from '../services/quiz.service'
+import { userEventService } from '../services/user-event.service'
 import { AppError, handleElysiaError } from '../utils/errors'
 import { extractLlmConfig, normalizeLanguageCode } from '../utils/helpers'
 
@@ -58,13 +59,21 @@ export const quizRouter = new Elysia({ prefix: '/api/quiz' })
   })
   .post('/submit', async ({ userId, body }) => {
     const normalizedLang = normalizeLanguageCode(body.language)
-
-    return await quizService.submitQuiz(
+    const result = await quizService.submitQuiz(
       userId,
       normalizedLang,
       body.levelValue,
       body.score,
     )
+
+    void userEventService.recordServerEvent(userId, 'quiz_completed', {
+      language: normalizedLang,
+      level: body.levelValue,
+      score: body.score,
+      passed: result.isPassed,
+    })
+
+    return result
   }, {
     body: t.Object({
       language: t.String(),

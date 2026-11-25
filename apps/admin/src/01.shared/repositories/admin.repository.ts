@@ -1,12 +1,18 @@
 import type {
   AdminAnalyticsOverview,
+  AdminCustomFunnelResponse,
+  AdminEventsCleanupResult,
+  AdminEventsOverview,
+  AdminEventStreamResponse,
   AdminUserDetailedAnalytics,
+  AdminUserEventsResponse,
   AdminUserSortBy,
   CatalogPlugin,
   DashboardStats,
   PaginatedResponse,
   PendingBook,
   PendingPlugin,
+  ProductEventCategory,
   PublicBook,
   SortDirection,
   SubscriptionTier,
@@ -26,9 +32,21 @@ export interface ListUsersQuery {
   sortDir?: SortDirection
 }
 
+export interface ListEventsQuery {
+  page?: number
+  limit?: number
+  event?: string
+  category?: ProductEventCategory | 'all'
+  targetUserId?: number
+}
+
 export interface IAdminRepository {
   stats: () => Promise<DashboardStats>
   analyticsOverview: (days?: number) => Promise<AdminAnalyticsOverview>
+  analyticsEventsOverview: (days?: number) => Promise<AdminEventsOverview>
+  analyticsCustomFunnel: (steps: string[], days?: number) => Promise<AdminCustomFunnelResponse>
+  listAnalyticsEvents: (opts?: ListEventsQuery) => Promise<AdminEventStreamResponse>
+  cleanupAnalyticsEvents: (retentionDays?: number) => Promise<AdminEventsCleanupResult>
   getSubscriptionTiers: () => Promise<SubscriptionTier[]>
   createSubscriptionTier: (data: SubscriptionTierInput) => Promise<SubscriptionTier>
   updateSubscriptionTier: (id: string, data: SubscriptionTierInput) => Promise<SubscriptionTier>
@@ -36,6 +54,7 @@ export interface IAdminRepository {
   listUsers: (opts?: ListUsersQuery) => Promise<PaginatedResponse<UserRow>>
   getUser: (id: number) => Promise<UserDetail>
   getUserAnalytics: (id: number) => Promise<AdminUserDetailedAnalytics>
+  getUserEvents: (id: number, opts?: Omit<ListEventsQuery, 'targetUserId'>) => Promise<AdminUserEventsResponse>
   createUser: (data: { username: string, password: string, role?: string, email?: string | null, subscriptionTier?: string, tokenLimit?: number, bookLimit?: number }) => Promise<{ success: boolean, user: Record<string, unknown> }>
   updateUser: (id: number, data: Record<string, unknown>) => Promise<{ success: boolean, user: Record<string, unknown> | null }>
   deleteUser: (id: number) => Promise<{ success: boolean }>
@@ -53,6 +72,10 @@ export interface IAdminRepository {
 export class DefaultAdminRepository implements IAdminRepository {
   async stats() { return api.admin.stats() }
   async analyticsOverview(days?: number) { return api.admin.analyticsOverview(days) }
+  async analyticsEventsOverview(days?: number) { return api.admin.analyticsEventsOverview(days) }
+  async analyticsCustomFunnel(steps: string[], days?: number) { return api.admin.analyticsCustomFunnel(steps, days) }
+  async listAnalyticsEvents(opts?: ListEventsQuery) { return api.admin.listAnalyticsEvents(opts) }
+  async cleanupAnalyticsEvents(retentionDays?: number) { return api.admin.cleanupAnalyticsEvents(retentionDays) }
   async getSubscriptionTiers() { return api.admin.getSubscriptionTiers() }
   async createSubscriptionTier(data: SubscriptionTierInput) { return api.admin.createSubscriptionTier(data) }
   async updateSubscriptionTier(id: string, data: SubscriptionTierInput) { return api.admin.updateSubscriptionTier(id, data) }
@@ -60,6 +83,7 @@ export class DefaultAdminRepository implements IAdminRepository {
   async listUsers(opts?: ListUsersQuery) { return api.admin.listUsers(opts) }
   async getUser(id: number) { return api.admin.getUser(id) }
   async getUserAnalytics(id: number) { return api.admin.getUserAnalytics(id) }
+  async getUserEvents(id: number, opts?: Omit<ListEventsQuery, 'targetUserId'>) { return api.admin.getUserEvents(id, opts) }
   async createUser(data: Parameters<IAdminRepository['createUser']>[0]) { return api.admin.createUser(data) }
   async updateUser(id: number, data: Record<string, unknown>) { return api.admin.updateUser(id, data) }
   async deleteUser(id: number) { return api.admin.deleteUser(id) }

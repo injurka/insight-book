@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useTracking } from './use-tracking'
 
-const mocks = vi.hoisted(() => ({ event: vi.fn(), user: vi.fn() }))
+const mocks = vi.hoisted(() => ({ event: vi.fn(), user: vi.fn(), productEvent: vi.fn() }))
 vi.mock('~/01.shared/services/monitoring.service', () => ({
   trackEvent: mocks.event,
   setTelemetryUser: mocks.user,
+}))
+vi.mock('~/01.shared/services/product-events.service', () => ({
+  enqueueProductEvent: mocks.productEvent,
 }))
 beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.unstubAllGlobals())
@@ -14,6 +17,10 @@ describe('useTracking', () => {
     useTracking().trackEvent('pwa_installed')
     useTracking().trackEvent('theme_changed', { theme: 'dark' })
     expect(mocks.event.mock.calls).toEqual([
+      ['pwa_installed', undefined],
+      ['theme_changed', { theme: 'dark' }],
+    ])
+    expect(mocks.productEvent.mock.calls).toEqual([
       ['pwa_installed', undefined],
       ['theme_changed', { theme: 'dark' }],
     ])

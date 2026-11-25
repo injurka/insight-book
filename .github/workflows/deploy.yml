@@ -430,17 +430,67 @@ jobs:
       - build-client
       - build-server
 
-    steps:
-      - name: Update Portainer Stack
-        env:
-          PORTAINER_WEBHOOK: ${{ secrets.PORTAINER_WEBHOOK }}
-        run: |
-          curl -k \
-               --fail-with-body \
-               --silent \
-               --show-error \
-               --max-time 60 \
-               --request POST \
-               "$PORTAINER_WEBHOOK"
+    concurrency:
+      group: portainer-insight-book
+      cancel-in-progress: false
 
-          echo "Portainer webhook triggered successfully"
+    steps:
+      - name: Stop and redeploy Portainer stack
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_STACK_ID: ${{ vars.PORTAINER_STACK_ID }}
+        run: |
+          : "${PORTAINER_URL:?Set the PORTAINER_URL secret}"
+          : "${PORTAINER_API_KEY:?Set the PORTAINER_API_KEY secret}"
+          if [[ ! "$PORTAINER_STACK_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Set PORTAINER_STACK_ID to the numeric stack ID" >&2
+            exit 1
+          fi
+
+          api() {
+            curl --fail --silent --show-error --connect-timeout 10 --max-time 300 \
+              --header "X-API-Key: $PORTAINER_API_KEY" "$@"
+          }
+
+          stack_url="${PORTAINER_URL%/}/api/stacks/$PORTAINER_STACK_ID"
+          stack=$(api "$stack_url")
+          endpoint=$(jq -er 'select(.Name == "insight-book" and .Type == 2) |
+            .EndpointId | select(type == "number" and . > 0)' <<< "$stack")
+          status=$(jq -er '.Status' <<< "$stack")
+          if [[ "$status" != 1 && "$status" != 2 ]]; then
+            echo "Unexpected stack status before deployment: $status" >&2
+            exit 1
+          fi
+
+          compose=$(api "$stack_url/file")
+          payload=$(jq -ecn --argjson stack "$stack" --argjson compose "$compose" '
+            {
+              StackFileContent: ($compose.StackFileContent | strings | select(length > 0)),
+              Env: ($stack.Env // []),
+              PullImage: true,
+              RepullImageAndRedeploy: true
+            }')
+          query="endpointId=$endpoint"
+
+          if [[ "$status" == 1 ]]; then
+            stopped=$(api --request POST "$stack_url/stop?$query")
+            if ! jq -e '.Status == 2' <<< "$stopped" > /dev/null; then
+              echo "Portainer did not confirm that the stack stopped" >&2
+              exit 1
+            fi
+          fi
+
+          updated=$(api --request PUT --header 'Content-Type: application/json' \
+            --data-binary @- "$stack_url?$query" <<< "$payload")
+          status=$(jq -er '.Status' <<< "$updated")
+          deadline=$((SECONDS + 900))
+          while [[ "$status" == 3 && "$SECONDS" -lt "$deadline" ]]; do
+            sleep 5
+            status=$(api "$stack_url" | jq -er '.Status')
+          done
+          if [[ "$status" != 1 ]]; then
+            echo "Portainer did not confirm successful deployment (status: $status)" >&2
+            exit 1
+          fi
+          echo "Portainer stack redeployed successfully"

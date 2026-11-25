@@ -1,9 +1,11 @@
 import type { TelemetryEventName } from '~/01.shared/services/monitoring.service'
 import { setTelemetryUser, trackEvent as trackTelemetryEvent } from '~/01.shared/services/monitoring.service'
+import { enqueueProductEvent } from '~/01.shared/services/product-events.service'
 
 export function useTracking() {
   function trackEvent(eventName: TelemetryEventName, eventData?: Record<string, unknown>) {
     trackTelemetryEvent(eventName, eventData)
+    enqueueProductEvent(eventName, eventData)
   }
 
   function identifyUser(userData: Record<string, unknown> & { id?: string | number, username?: string, role?: string }) {

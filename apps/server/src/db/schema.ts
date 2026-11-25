@@ -345,6 +345,18 @@ export const dailyActivity = sqliteTable('daily_activity', {
   unique().on(t.userId, t.date),
 ])
 
+export const userEvents = sqliteTable('user_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  event: text('event').notNull(),
+  meta: text('meta', { mode: 'json' }).$type<Record<string, string | number | boolean | null> | null>(),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+}, t => [
+  index('user_events_user_created_idx').on(t.userId, t.createdAt),
+  index('user_events_event_created_idx').on(t.event, t.createdAt),
+  index('user_events_created_idx').on(t.createdAt),
+])
+
 export const webPushSubscriptions = sqliteTable('web_push_subscriptions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -385,6 +397,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   dictionary: many(userDictionary),
   decks: many(dictDecks),
   activity: many(dailyActivity),
+  events: many(userEvents),
   progresses: many(readingProgress),
 
   tokenUsages: many(tokenUsage),
@@ -471,6 +484,10 @@ export const wordToDeckRelations = relations(wordToDeck, ({ one }) => ({
 
 export const dailyActivityRelations = relations(dailyActivity, ({ one }) => ({
   user: one(users, { fields: [dailyActivity.userId], references: [users.id] }),
+}))
+
+export const userEventsRelations = relations(userEvents, ({ one }) => ({
+  user: one(users, { fields: [userEvents.userId], references: [users.id] }),
 }))
 
 export const highlightsRelations = relations(highlights, ({ one }) => ({
